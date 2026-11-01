@@ -1618,7 +1618,7 @@ export default function TestPage({ params }) {
                         {currentQuestion.image && <img src={currentQuestion.image} alt="Question Diagram" style={{ maxWidth: '100%', marginTop: '1rem', borderRadius: '8px' }} />}
                     </div>
 
-                    {currentQuestion.type === 'NUMERICAL' ? (
+                    {currentQuestion.type === 'NUMERICAL' && !(exam?.toLowerCase() === 'neet' || testId?.toLowerCase()?.startsWith('neet')) ? (
                         <div style={{ marginTop: '1.5rem', background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
                             <h4 style={{ color: '#818cf8', marginBottom: '12px', fontSize: '0.95rem' }}>Numerical Answer Input:</h4>
                             <input 

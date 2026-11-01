@@ -295,6 +295,19 @@ async function ensureDbHasTest(testId, db) {
             ];
         }
 
+        const isNeet = testId.startsWith('neet');
+        // NEET strictly enforces Multiple Choice Questions with options (NO Numerical questions permitted)
+        if (isNeet) {
+            query.$nor = [
+                { questionType: { $regex: /numerical|numeric|integer/i } },
+                { type: { $regex: /numerical|numeric|integer/i } },
+                { options: { $size: 0 } },
+                { options: null },
+                { options: { $exists: false } }
+            ];
+            query['options.1'] = { $exists: true };
+        }
+
         if (testId.includes('SUBTOPIC') && (staticTest?.title || staticTest?.chapter)) {
             const subTitle = staticTest?.title || '';
             const cleanSub = subTitle.replace(/[-_]/g, ' ').trim();
@@ -456,6 +469,16 @@ async function ensureDbHasTest(testId, db) {
                     .replace(/\b(in|of)\b/gi, '(in|of)')
                     .replace(/(&|\band\b)/gi, '(&|and)');
                 fallbackQuery.chapter = { $regex: new RegExp(`^${escapedChap}$`, 'i') };
+            }
+            if (isNeet) {
+                fallbackQuery.$nor = [
+                    { questionType: { $regex: /numerical|numeric|integer/i } },
+                    { type: { $regex: /numerical|numeric|integer/i } },
+                    { options: { $size: 0 } },
+                    { options: null },
+                    { options: { $exists: false } }
+                ];
+                fallbackQuery['options.1'] = { $exists: true };
             }
             matched = await db.collection('questionBank')
                 .find({ ...fallbackQuery, ...(testId.startsWith('bitsat') ? { $nor: [{ questionType: { $regex: /assertion|ar|numerical/i } }, { type: { $regex: /assertion|ar|numerical/i } }] } : {}) })

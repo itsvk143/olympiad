@@ -97,6 +97,16 @@ export async function balanceTestQuestions(questions, db = null, testId = null, 
     }
 
     const isJEE = tid.startsWith('jee') || ex.includes('jee');
+    const isNEET = tid.startsWith('neet') || ex.includes('neet');
+
+    const isBadNeetQ = (q) => {
+        if (!q) return true;
+        const rawType = (q.questionType || q.type || '').toString().toUpperCase();
+        if (rawType.includes('NUMERICAL') || rawType.includes('NUMERIC') || rawType === 'INTEGER') return true;
+        if (!Array.isArray(q.options) || q.options.length < 2) return true;
+        return false;
+    };
+    const hasBadNeetQ = isNEET && questions.some(isBadNeetQ);
 
     const maxTotalAR = isJEE ? 5 : 6;
     const totalAR = questions.filter(isAR).length;
@@ -109,8 +119,8 @@ export async function balanceTestQuestions(questions, db = null, testId = null, 
         arAtEnd = allLastAreAR && !anyBeforeAreAR;
     }
 
-    // If test series already strictly conforms (AR <= max quota and all AR at the end), return immediately
-    if (totalAR <= maxTotalAR && arAtEnd) {
+    // If test series already strictly conforms (no bad questions, AR <= max quota and all AR at the end), return immediately
+    if (!hasBadNeetQ && totalAR <= maxTotalAR && arAtEnd) {
         return { balancedQuestions: questions, wasModified: false };
     }
 
@@ -161,17 +171,20 @@ export async function balanceTestQuestions(questions, db = null, testId = null, 
     for (const s of subjects) {
         const sQs = bySubj.get(s);
         const sAR = sQs.filter(isAR);
-        const sNonAR = sQs.filter(q => !isAR(q));
+        const sNonAR = sQs.filter(q => !isAR(q) && !(isNEET && isBadNeetQ(q)));
+        const badCount = isNEET ? sQs.filter(q => !isAR(q) && isBadNeetQ(q)).length : 0;
 
         const quota = subjQuotas.get(s) || 0;
         const keptAR = sAR.slice(0, quota);
         const excessAR = sAR.slice(quota);
         const excessCount = excessAR.length;
+        const totalNeedReplacement = excessCount + badCount;
 
         let replacements = [];
-        if (excessCount > 0 && db) {
-            // Find topic identifiers from the excess AR questions
-            const topics = [...new Set(excessAR.map(q => q.subTopic || q.chapter || q.topic).filter(Boolean))];
+        if (totalNeedReplacement > 0 && db) {
+            // Find topic identifiers from the excess AR and bad questions
+            const badQsInSub = isNEET ? sQs.filter(q => !isAR(q) && isBadNeetQ(q)) : [];
+            const topics = [...new Set([...excessAR, ...badQsInSub].map(q => q.subTopic || q.chapter || q.topic).filter(Boolean))];
             const filterIds = [...usedIds].map(toValidObjectId).filter(Boolean);
 
             const topicFilter = topics.length > 0 ? {
@@ -182,16 +195,27 @@ export async function balanceTestQuestions(questions, db = null, testId = null, 
                 ]
             } : {};
 
+            const neetExcludeFilter = isNEET ? [
+                { questionType: { $regex: /assertion|ar|numerical|numeric|integer/i } },
+                { type: { $regex: /assertion|ar|numerical|numeric|integer/i } },
+                { options: { $size: 0 } },
+                { options: null },
+                { options: { $exists: false } }
+            ] : [
+                { questionType: { $regex: /assertion|ar/i } },
+                { type: { $regex: /assertion|ar/i } }
+            ];
+
+            const neetExtraQuery = isNEET ? { 'options.1': { $exists: true } } : {};
+
             try {
                 const candidates = await db.collection('questionBank').find({
                     _id: { $nin: filterIds },
                     subject: s,
                     ...topicFilter,
-                    $nor: [
-                        { questionType: { $regex: /assertion|ar/i } },
-                        { type: { $regex: /assertion|ar/i } }
-                    ]
-                }).limit(excessCount).toArray();
+                    ...neetExtraQuery,
+                    $nor: neetExcludeFilter
+                }).limit(totalNeedReplacement).toArray();
 
                 candidates.forEach(c => {
                     replacements.push(c);
@@ -199,16 +223,14 @@ export async function balanceTestQuestions(questions, db = null, testId = null, 
                 });
 
                 // If not enough candidate MCQs in exact topics, fallback to subject-level MCQs
-                if (replacements.length < excessCount) {
-                    const needed = excessCount - replacements.length;
+                if (replacements.length < totalNeedReplacement) {
+                    const needed = totalNeedReplacement - replacements.length;
                     const fallbackFilterIds = [...usedIds].map(toValidObjectId).filter(Boolean);
                     const fallbackCandidates = await db.collection('questionBank').find({
                         _id: { $nin: fallbackFilterIds },
                         subject: s,
-                        $nor: [
-                            { questionType: { $regex: /assertion|ar/i } },
-                            { type: { $regex: /assertion|ar/i } }
-                        ]
+                        ...neetExtraQuery,
+                        $nor: neetExcludeFilter
                     }).limit(needed).toArray();
 
                     fallbackCandidates.forEach(c => {
@@ -236,6 +258,7 @@ export async function balanceTestQuestions(questions, db = null, testId = null, 
     if (balancedFinal.length < questions.length) {
         const finalIds = new Set(balancedFinal.map(q => (q._id ? q._id.toString() : q.id ? q.id.toString() : '')).filter(Boolean));
         for (const orig of questions) {
+            if (isNEET && isBadNeetQ(orig)) continue; // Never re-inject numerical questions into NEET tests!
             const oId = orig._id ? orig._id.toString() : orig.id ? orig.id.toString() : '';
             if (oId && !finalIds.has(oId)) {
                 balancedFinal.push(orig);
