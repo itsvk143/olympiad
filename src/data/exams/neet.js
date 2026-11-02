@@ -154,8 +154,8 @@ const buildAllSubjectTests = () => {
     ];
 };
 
-export const generateNeetTests = (year) => {
-    const partTests = generatePartTests('neet', neetChapters, 10).map(t => {
+export const generateNeetTests = (year = 2027) => {
+    const partTests = generatePartTests('neet', neetChapters, 10, year).map(t => {
         if (t.id === 'neet-PART-6') {
             return {
                 ...t,
@@ -188,7 +188,7 @@ export const generateNeetTests = (year) => {
         type: 'PART',
         subject: 'Mixed',
         classGrade: 'All Test',
-        year: 2026,
+        year: 2027,
         category: 'neet',
         duration: 180,
         totalMarks: 720,
