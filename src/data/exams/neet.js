@@ -182,6 +182,38 @@ export const generateNeetTests = (year) => {
         return t;
     });
 
+    partTests.push({
+        id: 'neet-PART-11',
+        title: 'NEET Part Test 11',
+        type: 'PART',
+        subject: 'Mixed',
+        classGrade: 'All Test',
+        year: 2026,
+        category: 'neet',
+        duration: 180,
+        totalMarks: 720,
+        questionsCount: 180,
+        difficulty: 'Easy',
+        description: 'Part Syllabus Test covering targeted chapters across all subjects.',
+        syllabus: {
+            Physics: [
+                "Work, Power and Energy",
+                "Laws of Motion (Newton's Laws of Motion), Projectile, and Relative Motion"
+            ],
+            Chemistry: [
+                "Solutions and Colligative Properties",
+                "Structure of Atom",
+                "Classification of Elements and Periodicity in Properties (Periodic Table)"
+            ],
+            Botany: [
+                "Plant Kingdom (up to Pteridophytes)"
+            ],
+            Zoology: [
+                "Neural Control and Coordination"
+            ]
+        }
+    });
+
     return [
         // Mock Tests
         ...generateTests('neet', 10, 'MOCK', null, 'All Test'),
