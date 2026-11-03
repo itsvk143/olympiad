@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './AdminUserList.module.css';
 import { normalizeToCanonicalExam, getCanonicalExamDisplay } from '@/lib/authorization';
+import EmailLogsModal from './EmailLogsModal';
 
 const DEFAULT_APPROVALS = { live: false, mock: true, subject: false, chapter: false, subtopic: false };
 
@@ -32,6 +33,13 @@ export default function AdminUserList() {
     const [restoreIdentifier, setRestoreIdentifier] = useState('');
     const [restoring, setRestoring] = useState(false);
     const [restoreError, setRestoreError] = useState('');
+    const [emailModalOpen, setEmailModalOpen] = useState(false);
+    const [emailModalStudent, setEmailModalStudent] = useState('');
+
+    const openStudentEmailLogs = (studentEmail = '') => {
+        setEmailModalStudent(studentEmail);
+        setEmailModalOpen(true);
+    };
     const [filters, setFilters] = useState({
         exam: '',
         paymentStatus: '',
@@ -473,6 +481,18 @@ export default function AdminUserList() {
                      >
                          🔄 Restore Student
                      </button>
+                     <button
+                         onClick={() => openStudentEmailLogs('')}
+                         style={{
+                             padding: '9px 16px', borderRadius: '10px', cursor: 'pointer', fontWeight: '700',
+                             fontSize: '0.85rem', border: '1px solid rgba(56, 189, 248, 0.4)',
+                             background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', transition: 'all 0.2s',
+                             display: 'flex', alignItems: 'center', gap: '6px'
+                         }}
+                         title="View automated email delivery logs and Resend free-tier quota"
+                     >
+                         📧 Email Logs & Quota
+                     </button>
                      {filteredAndSortedUsers.length > 0 && (
                          <div style={{ position: 'relative', display: 'flex', gap: '8px' }}>
                              <button
@@ -888,6 +908,39 @@ export default function AdminUserList() {
                                                         >
                                                             🚫 Revoke All
                                                         </button>
+                                                        {user.latestEmailNotification && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); openStudentEmailLogs(user.email); }}
+                                                                style={{
+                                                                    fontSize: '0.72rem',
+                                                                    padding: '3px 8px',
+                                                                    borderRadius: '12px',
+                                                                    border: user.latestEmailNotification.status === 'SENT' ? '1px solid rgba(16,185,129,0.4)' :
+                                                                            user.latestEmailNotification.status === 'PENDING' ? '1px solid rgba(245,158,11,0.4)' :
+                                                                            user.latestEmailNotification.status === 'QUOTA_EXCEEDED' ? '1px solid rgba(249,115,22,0.4)' :
+                                                                            '1px solid rgba(239,68,68,0.4)',
+                                                                    background: user.latestEmailNotification.status === 'SENT' ? 'rgba(16,185,129,0.1)' :
+                                                                                user.latestEmailNotification.status === 'PENDING' ? 'rgba(245,158,11,0.1)' :
+                                                                                user.latestEmailNotification.status === 'QUOTA_EXCEEDED' ? 'rgba(249,115,22,0.1)' :
+                                                                                'rgba(239,68,68,0.1)',
+                                                                    color: user.latestEmailNotification.status === 'SENT' ? '#10b981' :
+                                                                           user.latestEmailNotification.status === 'PENDING' ? '#f59e0b' :
+                                                                           user.latestEmailNotification.status === 'QUOTA_EXCEEDED' ? '#fb923c' :
+                                                                           '#ef4444',
+                                                                    cursor: 'pointer',
+                                                                    fontWeight: '700',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '4px'
+                                                                }}
+                                                                title={`Email Status: ${user.latestEmailNotification.status}. Click to view logs.`}
+                                                            >
+                                                                {user.latestEmailNotification.status === 'SENT' && '📧 Sent'}
+                                                                {user.latestEmailNotification.status === 'PENDING' && '⏳ Pending'}
+                                                                {user.latestEmailNotification.status === 'FAILED' && '⚠️ Failed'}
+                                                                {user.latestEmailNotification.status === 'QUOTA_EXCEEDED' && '🛑 Quota'}
+                                                            </button>
+                                                        )}
                                                         {isUpdating && (
                                                             <span style={{ fontSize: '0.75rem', color: '#94a3b8', alignSelf: 'center' }}>Saving...</span>
                                                         )}
@@ -980,7 +1033,7 @@ export default function AdminUserList() {
                             </button>
                         </div>
                         <p style={{ color: '#94a3b8', fontSize: '0.875rem', lineHeight: '1.5', marginBottom: '20px' }}>
-                            Restore a deleted student account or reconnect existing payments. Enter the student's Google email, student code, Razorpay order ID, or payment ID. Their full 732-day test access will be reconnected without charging again.
+                            Restore a deleted student account or reconnect existing payments. Enter the student&apos;s Google email, student code, Razorpay order ID, or payment ID. Their full 732-day test access will be reconnected without charging again.
                         </p>
 
                         <div style={{ marginBottom: '16px' }}>
@@ -1056,6 +1109,14 @@ export default function AdminUserList() {
                     </div>
                 </div>
             )}
+
+            {/* Email Notifications Management Modal */}
+            <EmailLogsModal
+                isOpen={emailModalOpen}
+                onClose={() => setEmailModalOpen(false)}
+                initialStudentEmail={emailModalStudent}
+                onToast={showToast}
+            />
 
             {/* Premium Toast Notification */}
             {toast && (

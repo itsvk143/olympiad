@@ -14,7 +14,6 @@ export async function GET(request) {
         const db = client.db('testseries');
 
         // Fetch all users from the NextAuth collection
-        // Exclude the provider secrets and emails Verified tokens
         const users = await db.collection('users').find({}, {
             projection: {
                 name: 1,
@@ -40,7 +39,30 @@ export async function GET(request) {
             }
         }).toArray();
 
-        // Optionally fetch related test results to aggregate stats
+        const userEmails = users.map(u => (u.email || '').trim().toLowerCase()).filter(Boolean);
+
+        // Fetch latest email notification per student in one single aggregation
+        const latestNotifications = await db.collection('emailNotifications').aggregate([
+            { $match: { studentEmail: { $in: userEmails } } },
+            { $sort: { createdAt: -1 } },
+            {
+                $group: {
+                    _id: '$studentEmail',
+                    status: { $first: '$status' },
+                    notificationId: { $first: '$notificationId' },
+                    sentAt: { $first: '$sentAt' },
+                    createdAt: { $first: '$createdAt' },
+                    activatedCategories: { $first: '$activatedCategories' },
+                    errorMessage: { $first: '$errorMessage' }
+                }
+            }
+        ]).toArray().catch(err => {
+            console.warn('Could not fetch latest notifications:', err.message);
+            return [];
+        });
+
+        const notifMap = new Map(latestNotifications.map(n => [n._id, n]));
+
         const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
         const usersWithStats = await Promise.all(users.map(async (user) => {
             const resultsCount = await db.collection('testResults').countDocuments({
@@ -50,11 +72,13 @@ export async function GET(request) {
                 isDeleted: { $ne: true }
             });
             const isAdmin = user.role === 'admin' || adminEmails.includes(user.email?.toLowerCase());
+            const emailKey = user.email?.trim().toLowerCase();
             return {
                 ...user,
                 _id: user._id.toString(),
                 testsTaken: resultsCount,
                 isAdmin,
+                latestEmailNotification: notifMap.get(emailKey) || null
             };
         }));
 
