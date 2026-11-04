@@ -26,7 +26,7 @@ if (process.env.VERCEL || process.env.VERCEL_URL) {
 }
 
 function CustomMongoDBAdapter(clientPromise) {
-    const adapter = MongoDBAdapter(clientPromise);
+    const adapter = MongoDBAdapter(clientPromise, { databaseName: 'testseries' });
 
     return {
         ...adapter,

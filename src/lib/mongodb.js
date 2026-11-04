@@ -4,7 +4,22 @@ if (!process.env.MONGODB_URI) {
     console.warn('Please add your Mongo URI to .env.local');
 }
 
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/fallback';
+let uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/testseries';
+
+// Ensure the URI targets the 'testseries' database if no database path was provided
+if (uri && !uri.startsWith('mongodb://localhost:27017/fallback')) {
+    try {
+        const parsed = new URL(uri);
+        if (!parsed.pathname || parsed.pathname === '/') {
+            parsed.pathname = '/testseries';
+            uri = parsed.toString();
+        }
+    } catch {
+        if (uri.endsWith('/')) {
+            uri = `${uri}testseries`;
+        }
+    }
+}
 const options = {};
 
 let client;

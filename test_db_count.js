@@ -28,8 +28,12 @@ async function run() {
     
     // Sample a few to check structure
     const sample = await questions.find({}).limit(1).toArray();
-    console.log("Sample question keys:", Object.keys(sample[0]));
-    console.log("Sample question:", sample[0]);
+    if (sample.length > 0) {
+      console.log("Sample question keys:", Object.keys(sample[0]));
+      console.log("Sample question:", sample[0]);
+    } else {
+      console.log("No questions found in collection.");
+    }
 
   } finally {
     await client.close();
