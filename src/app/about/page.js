@@ -580,74 +580,74 @@ export default function AboutPage() {
                 </section>
 
                 {/* ==========================================================
-                    7. EXAM PREPARATION
+                    7. OLYMPIAD DISCIPLINES
                    ========================================================== */}
                 <section className={styles.examsSection}>
                     <div className={styles.sectionHeader}>
-                        <div className={styles.sectionPill}>SUPPORTED EXAMINATIONS</div>
+                        <div className={styles.sectionPill}>NATIONAL &amp; INTERNATIONAL OLYMPIADS</div>
                         <h2 className={styles.sectionTitle}>
-                            PREPARE FOR <span className={styles.highlightText}>YOUR EXAM</span>
+                            PREPARE FOR <span className={styles.highlightText}>OLYMPIAD EXCELLENCE</span>
                         </h2>
                         <p className={styles.sectionSubtitle}>
-                            Exhaustive testing modules tailored strictly to the syllabus and scoring criteria of each exam.
+                            Exhaustive testing modules tailored strictly to Classes 1–12 with authentic LaTeX formulas, diagrams, and instant analytics.
                         </p>
                     </div>
 
                     <div className={styles.examsGrid}>
-                        {/* NEET */}
+                        {/* MATHEMATICS OLYMPIAD */}
                         <div className={`${styles.examCard} ${styles.examCardNEET}`}>
                             <div>
-                                <span className={`${styles.examBadge} ${styles.badgeNEET}`}>MEDICAL ENTRANCE</span>
-                                <h3 className={styles.examTitle}>NEET UG</h3>
+                                <span className={`${styles.examBadge} ${styles.badgeNEET}`}>IMO / iOM / UIMO</span>
+                                <h3 className={styles.examTitle}>MATHEMATICS OLYMPIAD</h3>
                                 <p className={styles.examDesc}>
-                                    Focused competitive-exam practice strictly aligned with 100% NCERT Biology, Physics, and Chemistry.
+                                    Rigorous mathematical reasoning, geometry, number systems, algebra, and advanced problem-solving for Classes 1–12.
                                 </p>
                                 <ul className={styles.examFeatures}>
-                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#22c55e" /> Full-Length 720-Mark Mocks</li>
-                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#22c55e" /> Botany &amp; Zoology Chapter Drills</li>
-                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#22c55e" /> Subtopic Mastery &amp; Sectional Tests</li>
+                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#22c55e" /> 120 Official-Pattern Mock Papers</li>
+                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#22c55e" /> KaTeX Mathematical Proofs &amp; Derivations</li>
+                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#22c55e" /> High-Order Thinking (HOTS) Curriculum</li>
                                 </ul>
                             </div>
-                            <Link href="/test-series/neet" className={styles.cardCta}>
-                                EXPLORE NEET SERIES <ChevronRight size={16} />
+                            <Link href="/test-series/olympiad" className={styles.cardCta}>
+                                EXPLORE MATH OLYMPIAD <ChevronRight size={16} />
                             </Link>
                         </div>
 
-                        {/* JEE MAIN */}
+                        {/* SCIENCE OLYMPIAD */}
                         <div className={`${styles.examCard} ${styles.examCardJEE}`}>
                             <div>
-                                <span className={`${styles.examBadge} ${styles.badgeJEE}`}>ENGINEERING ENTRANCE</span>
-                                <h3 className={styles.examTitle}>JEE MAIN</h3>
+                                <span className={`${styles.examBadge} ${styles.badgeJEE}`}>NSO / iOS / NSTSE</span>
+                                <h3 className={styles.examTitle}>SCIENCE OLYMPIAD</h3>
                                 <p className={styles.examDesc}>
-                                    Structured engineering entrance preparation with single-choice and numerical-value question types.
+                                    Comprehensive physics, chemistry, biology, earth science, and experimental apparatus questions for Classes 1–12.
                                 </p>
                                 <ul className={styles.examFeatures}>
-                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#3b82f6" /> 300-Mark Full Syllabus Mocks</li>
-                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#3b82f6" /> Physics, Chemistry &amp; Mathematics</li>
-                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#3b82f6" /> Real-time Time &amp; Accuracy Heatmaps</li>
+                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#3b82f6" /> 120 Visual &amp; Concept-Rich Mock Papers</li>
+                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#3b82f6" /> Circuit &amp; Cellular SVG Diagrams</li>
+                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#3b82f6" /> Chemical Reactions &amp; Formula Explanations</li>
                                 </ul>
                             </div>
-                            <Link href="/test-series/jee-mains" className={styles.cardCta}>
-                                EXPLORE JEE MAINS SERIES <ChevronRight size={16} />
+                            <Link href="/test-series/olympiad" className={styles.cardCta}>
+                                EXPLORE SCIENCE OLYMPIAD <ChevronRight size={16} />
                             </Link>
                         </div>
 
-                        {/* BITSAT */}
+                        {/* ENGLISH OLYMPIAD */}
                         <div className={`${styles.examCard} ${styles.examCardBITSAT}`}>
                             <div>
-                                <span className={`${styles.examBadge} ${styles.badgeBITSAT}`}>PREMIER SPEED EXAM</span>
-                                <h3 className={styles.examTitle}>BITSAT</h3>
+                                <span className={`${styles.examBadge} ${styles.badgeBITSAT}`}>IEO / iOEL</span>
+                                <h3 className={styles.examTitle}>ENGLISH OLYMPIAD</h3>
                                 <p className={styles.examDesc}>
-                                    Structured BITSAT practice focusing on rapid decision-making, speed, accuracy, and logical reasoning.
+                                    Grammar mastery, lexical precision, reading comprehension, error spotting, and linguistic eloquence for Classes 1–12.
                                 </p>
                                 <ul className={styles.examFeatures}>
-                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#f59e0b" /> Official 130-Question Blueprint</li>
-                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#f59e0b" /> Math and Biology Separate Tracks</li>
-                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#f59e0b" /> English Proficiency &amp; Logic Drills</li>
+                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#f59e0b" /> 120 Comprehensive Language Papers</li>
+                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#f59e0b" /> Lexical Nuance &amp; Verbal Reasoning</li>
+                                    <li className={styles.examFeatureItem}><CheckCircle2 size={15} color="#f59e0b" /> Grammatical Error Diagnostics</li>
                                 </ul>
                             </div>
-                            <Link href="/test-series/bitsat" className={styles.cardCta}>
-                                EXPLORE BITSAT SERIES <ChevronRight size={16} />
+                            <Link href="/test-series/olympiad" className={styles.cardCta}>
+                                EXPLORE ENGLISH OLYMPIAD <ChevronRight size={16} />
                             </Link>
                         </div>
                     </div>

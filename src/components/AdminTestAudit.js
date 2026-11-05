@@ -447,9 +447,14 @@ export default function AdminTestAudit() {
 
                     <select value={examFilter} onChange={(e) => setExamFilter(e.target.value)} className={styles.selectInput}>
                         <option value="ALL">All Exams</option>
-                        <option value="NEET">NEET</option>
-                        <option value="JEE Main">JEE Main</option>
-                        <option value="BITSAT">BITSAT</option>
+                        <option value="olympiad">Olympiad</option>
+                    </select>
+
+                    <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} className={styles.selectInput}>
+                        <option value="ALL">All Subjects</option>
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Science">Science</option>
+                        <option value="English">English</option>
                     </select>
 
                     <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={styles.selectInput}>

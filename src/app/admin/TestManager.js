@@ -990,7 +990,7 @@ function QuestionManager({ test, onBack }) {
         }
     }, [activeSubMode]);
 
-    const examSubjects = subjectsByExam[test.id.startsWith('neet') ? 'neet' : test.id.startsWith('jee-mains') ? 'jee-mains' : test.id.startsWith('bitsat') ? 'bitsat' : 'neet'] || [];
+    const examSubjects = subjectsByExam[test.exam || 'olympiad'] || subjectsByExam.olympiad || ['Mathematics', 'Science', 'English'];
 
     return (
         <div style={{ padding: '10px 0' }}>

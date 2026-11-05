@@ -239,11 +239,19 @@ function QuestionCardBody({ q, viewMode }) {
                 </div>
             )}
 
+            {/* Diagram (SVG) if present */}
+            {q.diagram && (
+                <div 
+                    style={{ marginTop: '8px', marginBottom: '8px', display: 'flex', justifyContent: 'center' }}
+                    dangerouslySetInnerHTML={{ __html: q.diagram }}
+                />
+            )}
+
             {/* Image if present */}
             {(q.image || q.img) && (
-                <div style={{ marginTop: '4px' }}>
+                <div style={{ marginTop: '4px', display: 'flex', justifyContent: 'center' }}>
                     <img 
-                        src={q.image || q.img} 
+                        src={typeof (q.image || q.img) === 'string' ? (q.image || q.img) : (q.image?.url || q.img?.url || '')} 
                         alt="Question Diagram" 
                         style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }} 
                     />
@@ -508,7 +516,7 @@ function EditModal({ question, onSave, onClose }) {
 // ── Main component ───────────────────────────────────────────────────────────
 export default function TestMappingPanel({ allTests }) {
     // ─ Test selector state ─
-    const [examFilter, setExamFilter] = useState('neet');
+    const [examFilter, setExamFilter] = useState('olympiad');
     const [testTypeFilter, setTestTypeFilter] = useState('ALL');
     const [testSubjectFilter, setTestSubjectFilter] = useState('ALL');
     const [testSearch, setTestSearch] = useState('');
@@ -736,16 +744,15 @@ export default function TestMappingPanel({ allTests }) {
         }
     }, [selectedTestId, testTypeFilter, allTests, pickerChapter, pickerSubject]);
 
-    // Dynamic subjects for current exam
+    // Dynamic subjects for Olympiad
     const subjectsForExam = useMemo(() => {
-        if (examFilter === 'neet') return ['Physics', 'Chemistry', 'Botany', 'Zoology'];
-        return ['Physics', 'Chemistry', 'Mathematics'];
-    }, [examFilter]);
+        return ['Mathematics', 'Science', 'English'];
+    }, []);
 
     // Reset subject filter, chapter filter, search, and selected chapter when exam changes
     const handleExamChange = (newExam) => {
         setExamFilter(newExam);
-        const newSubjects = newExam === 'neet' ? ['Physics', 'Chemistry', 'Botany', 'Zoology'] : ['Physics', 'Chemistry', 'Mathematics'];
+        const newSubjects = ['Mathematics', 'Science', 'English'];
         if (testTypeFilter === 'CHAPTER') {
             setSelectedTestId('');
             setMappedQuestions([]);
@@ -970,9 +977,7 @@ export default function TestMappingPanel({ allTests }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.8rem', color: '#94a3b8', minWidth: '110px' }}>
                         <span style={{ fontWeight: 600 }}>Exam</span>
                         <select value={examFilter} onChange={e => handleExamChange(e.target.value)} style={inputSty}>
-                            <option value="neet">NEET</option>
-                            <option value="jee-mains">JEE Mains</option>
-                            <option value="bitsat">BITSAT</option>
+                            <option value="olympiad">Olympiad</option>
                         </select>
                     </div>
 

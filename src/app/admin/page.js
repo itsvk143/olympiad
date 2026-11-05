@@ -722,7 +722,7 @@ export default function AdminPanel() {
     const [expandedTestPills, setExpandedTestPills] = useState({});
     const [filterSubject, setFilterSubject] = useState('ALL');
     const [filterChapter, setFilterChapter] = useState('ALL');
-    const globalSubjects = ['Physics', 'Chemistry', 'Mathematics', 'Botany', 'Zoology', 'English Proficiency', 'Logical Reasoning'];
+    const globalSubjects = ['Mathematics', 'Science', 'English'];
     const questionsPerPage = 50;
 
     const [editingQuestionAssignedTests, setEditingQuestionAssignedTests] = useState([]);
@@ -732,7 +732,9 @@ export default function AdminPanel() {
         type: 'MCQ',
         text: '',
         image: '',
-        subject: 'Physics',
+        diagram: '',
+        classGrade: '1',
+        subject: 'Mathematics',
         chapter: '',
         subtopic: '',
         difficulty: 'Medium',
@@ -1301,12 +1303,17 @@ export default function AdminPanel() {
             id: editingQuestion ? editingQuestion.id : undefined,
             type: formData.type || 'MCQ',
             text: formData.text,
+            diagram: formData.diagram || null,
             image: formData.image,
+            classGrade: formData.classGrade || '1',
             subject: formData.subject,
             chapter: formData.chapter,
             subtopic: formData.subtopic,
             subTopic: formData.subtopic,
             difficulty: formData.difficulty || 'Medium',
+            marks: 1,
+            negativeMarks: 0,
+            exam: 'olympiad',
             explanation: formData.explanation,
             ...(formData.type === 'NUMERICAL' ? {
                 correctOption: String(formData.correctOption).trim(),
@@ -1735,9 +1742,11 @@ export default function AdminPanel() {
         setFormData({
             type: q.type || 'MCQ',
             difficulty: q.difficulty || 'Medium',
-            text: q.text,
+            text: q.text || q.question || '',
+            diagram: q.diagram || '',
             image: q.image || '',
-            subject: q.subject,
+            classGrade: q.classGrade || q.class || '1',
+            subject: q.subject || 'Mathematics',
             chapter: q.chapter || '',
             subtopic: q.subtopic || q.subTopic || '',
             correctOption: q.correctOption !== undefined && q.correctOption !== null ? String(q.correctOption) : 'a',
@@ -1762,8 +1771,10 @@ export default function AdminPanel() {
             type: 'MCQ',
             difficulty: 'Medium',
             text: '',
+            diagram: '',
             image: '',
-            subject: selectedSubject !== 'ALL' ? selectedSubject : (availableSubjects[0] || 'Physics'),
+            classGrade: '1',
+            subject: selectedSubject !== 'ALL' ? selectedSubject : 'Mathematics',
             chapter: '',
             subtopic: '',
             correctOption: 'a',
@@ -2989,20 +3000,15 @@ export default function AdminPanel() {
                                 </label>
                                 {/* Chapter multi-select dropdown */}
                                 {(() => {
-                                    // Merge all chapters from all exams for subject
+                                    // Retrieve topics from OLYMPIAD_SYLLABUS for selected subject & class
                                     let chapters = [];
-                                    if (aiForm.subject) {
-                                        const allChapterData = { neet: neetChapters, 'jee-mains': jeeMainsChapters, bitsat: bitsatChapters };
-                                        Object.values(allChapterData).forEach(examData => {
-                                            if (examData[aiForm.subject]) {
-                                                const subjectChapters = examData[aiForm.subject];
-                                                if (aiForm.classGrade && subjectChapters[aiForm.classGrade]) {
-                                                    chapters.push(...subjectChapters[aiForm.classGrade]);
-                                                } else {
-                                                    chapters.push(...Object.values(subjectChapters).flat());
-                                                }
-                                            }
-                                        });
+                                    if (aiForm.subject && OLYMPIAD_SYLLABUS[aiForm.subject]) {
+                                        const subjData = OLYMPIAD_SYLLABUS[aiForm.subject];
+                                        if (aiForm.classGrade && subjData[aiForm.classGrade]) {
+                                            chapters = [...subjData[aiForm.classGrade]];
+                                        } else {
+                                            chapters = Object.values(subjData).flat();
+                                        }
                                         chapters = [...new Set(chapters)].sort((a, b) => a.localeCompare(b));
                                     }
                                     const toggleChapter = (ch) => {
@@ -3672,6 +3678,20 @@ ANSWER KEY
                                     {globalSubjects.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </label>
+                            <label>Class Grade
+                                <select
+                                    value={formData.classGrade || '1'}
+                                    onChange={e => setFormData({ ...formData, classGrade: e.target.value })}
+                                    className={styles.input}
+                                >
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(c => (
+                                        <option key={c} value={String(c)}>Class {c}</option>
+                                    ))}
+                                </select>
+                            </label>
+                        </div>
+
+                        <div className={styles.col2}>
                             <label>Chapter / Topic
                                 {(() => {
                                     // Always start with the full static chapter list for the selected subject
@@ -3952,19 +3972,101 @@ ANSWER KEY
                         </div>
 
                         <label>Question Text (Supports LaTeX: $math$ or $$math$$)
+                            {/* LaTeX Snippet Quick Insert Bar */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '6px 0 8px 0', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Formula Templates:</span>
+                                {[
+                                    { label: 'Fraction', snippet: '$\\frac{a}{b}$' },
+                                    { label: 'Square Root', snippet: '$\\sqrt{x}$' },
+                                    { label: 'Exponent', snippet: '$x^2$' },
+                                    { label: 'Subscript', snippet: '$x_i$' },
+                                    { label: 'Chemical', snippet: '$\\ce{H2SO4}$' },
+                                    { label: 'Degree', snippet: '$90^\\circ$' },
+                                    { label: 'Alpha', snippet: '$\\alpha$' },
+                                    { label: 'Bold', snippet: '\\textbf{text}' },
+                                    { label: 'Italic', snippet: '\\textit{text}' }
+                                ].map(item => (
+                                    <button
+                                        key={item.label}
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, text: (prev.text || '') + ' ' + item.snippet }))}
+                                        style={{
+                                            background: 'rgba(99, 102, 241, 0.15)',
+                                            border: '1px solid rgba(99, 102, 241, 0.35)',
+                                            color: '#a5b4fc',
+                                            borderRadius: '4px',
+                                            padding: '2px 8px',
+                                            fontSize: '0.75rem',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {item.label}
+                                    </button>
+                                ))}
+                            </div>
+
                             <textarea
                                 className={styles.textarea}
                                 rows={3}
                                 value={formData.text}
                                 onChange={e => setFormData({ ...formData, text: e.target.value })}
-                                placeholder="Enter question. Use $x^2$ for inline math."
+                                placeholder="Enter question. Use $x^2$ for inline math, $$...$$ for display math, or \\ce{...} for chemistry."
                             />
+
+                            {/* SVG Diagram / Visual Asset Panel */}
+                            <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                                    <small style={{ fontWeight: 600, color: '#38bdf8' }}>📐 SVG Diagram / Visual Asset (Optional):</small>
+                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Insert Preset:</span>
+                                        {[
+                                            { label: 'Triangle', svg: '<svg viewBox="0 0 240 180" width="240" height="180" xmlns="http://www.w3.org/2000/svg"><polygon points="40,150 200,150 60,40" fill="rgba(56,189,248,0.12)" stroke="#38bdf8" stroke-width="2.5"/><line x1="60" y1="40" x2="60" y2="150" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,4"/><rect x="60" y="135" width="15" height="15" fill="none" stroke="#94a3b8" stroke-width="1.5"/><text x="50" y="32" fill="#f8fafc" font-size="14" font-weight="bold">A</text><text x="24" y="160" fill="#f8fafc" font-size="14" font-weight="bold">B</text><text x="208" y="160" fill="#f8fafc" font-size="14" font-weight="bold">C</text><text x="66" y="100" fill="#cbd5e1" font-size="12">h</text><text x="120" y="168" fill="#cbd5e1" font-size="12">b</text></svg>' },
+                                            { label: 'Circuit', svg: '<svg viewBox="0 0 260 160" width="260" height="160" xmlns="http://www.w3.org/2000/svg"><rect x="30" y="30" width="200" height="100" fill="none" stroke="#38bdf8" stroke-width="2"/><circle cx="130" cy="130" r="14" fill="#0f172a" stroke="#f59e0b" stroke-width="2"/><line x1="120" y1="120" x2="140" y2="140" stroke="#f59e0b" stroke-width="1.5"/><line x1="140" y1="120" x2="120" y2="140" stroke="#f59e0b" stroke-width="1.5"/><text x="115" y="155" fill="#fcd34d" font-size="11">Bulb</text></svg>' },
+                                            { label: 'Plant Cell', svg: '<svg viewBox="0 0 240 180" width="240" height="180" xmlns="http://www.w3.org/2000/svg"><polygon points="30,25 210,25 225,155 15,155" fill="rgba(16,185,129,0.15)" stroke="#10b981" stroke-width="3"/><ellipse cx="120" cy="90" rx="45" ry="30" fill="rgba(56,189,248,0.2)" stroke="#38bdf8" stroke-width="1.5"/><circle cx="70" cy="75" r="16" fill="#8b5cf6"/><text x="56" y="79" fill="#ffffff" font-size="9">Nucleus</text><text x="102" y="93" fill="#38bdf8" font-size="10">Vacuole</text><text x="85" y="170" fill="#10b981" font-size="11">Cell Wall</text></svg>' },
+                                            { label: 'Food Chain', svg: '<svg viewBox="0 0 280 80" width="280" height="80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="25" width="60" height="30" rx="6" fill="#10b981"/><text x="18" y="44" fill="#ffffff" font-size="10" font-weight="bold">Plant</text><text x="82" y="45" fill="#38bdf8" font-size="16">→</text><rect x="105" y="25" width="65" height="30" rx="6" fill="#f59e0b"/><text x="111" y="44" fill="#ffffff" font-size="10" font-weight="bold">Rabbit</text><text x="182" y="45" fill="#38bdf8" font-size="16">→</text><rect x="205" y="25" width="60" height="30" rx="6" fill="#ef4444"/><text x="216" y="44" fill="#ffffff" font-size="10" font-weight="bold">Fox</text></svg>' },
+                                            { label: 'Clock Face', svg: '<svg viewBox="0 0 200 200" width="200" height="200" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="100" r="85" fill="#1e293b" stroke="#38bdf8" stroke-width="3"/><circle cx="100" cy="100" r="4" fill="#f8fafc"/><text x="94" y="32" fill="#f8fafc" font-size="14" font-weight="bold">12</text><text x="168" y="105" fill="#f8fafc" font-size="14" font-weight="bold">3</text><text x="96" y="175" fill="#f8fafc" font-size="14" font-weight="bold">6</text><text x="25" y="105" fill="#f8fafc" font-size="14" font-weight="bold">9</text><line x1="100" y1="100" x2="140" y2="100" stroke="#f59e0b" stroke-width="4"/><line x1="100" y1="100" x2="100" y2="40" stroke="#38bdf8" stroke-width="2.5"/></svg>' }
+                                        ].map(preset => (
+                                            <button
+                                                key={preset.label}
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, diagram: preset.svg }))}
+                                                style={{
+                                                    background: 'rgba(56, 189, 248, 0.1)',
+                                                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                                                    color: '#38bdf8',
+                                                    borderRadius: '4px',
+                                                    padding: '1px 6px',
+                                                    fontSize: '0.7rem',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {preset.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <textarea
+                                    className={styles.textarea}
+                                    rows={2}
+                                    value={formData.diagram || ''}
+                                    onChange={e => setFormData({ ...formData, diagram: e.target.value })}
+                                    placeholder="Paste raw <svg>...</svg> vector code here..."
+                                    style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}
+                                />
+                                {formData.diagram && (
+                                    <div style={{ marginTop: '8px', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px', textAlign: 'center' }}>
+                                        <small style={{ color: '#94a3b8', display: 'block', marginBottom: '6px' }}>SVG Diagram Live Preview:</small>
+                                        <div dangerouslySetInnerHTML={{ __html: formData.diagram }} />
+                                    </div>
+                                )}
+                            </div>
+
                             <div style={{ marginTop: '10px' }}>
-                                <small>Attach Image (Optional): </small>
+                                <small>Attach Photograph / Image (Optional): </small>
                                 <input type="file" onChange={(e) => handleFileUpload(e, 'image')} accept="image/*" />
                                 {formData.image && <img src={formData.image} alt="Preview" style={{ maxHeight: '100px', display: 'block', marginTop: '5px' }} />}
                             </div>
-                            {formData.text && <div className={styles.preview}><small>Preview:</small> <LatexRenderer text={formData.text} /></div>}
+                            {formData.text && <div className={styles.preview}><small>Live Formula Preview:</small> <LatexRenderer text={formData.text} /></div>}
                         </label>
 
                         {formData.type !== 'NUMERICAL' && (

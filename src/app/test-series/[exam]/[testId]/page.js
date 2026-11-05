@@ -1523,9 +1523,8 @@ export default function TestPage({ params }) {
                                 const studentAns = answers[qKey] ?? answers[String(currentQuestion.id)] ?? '';
                                 const isNumerical = currentQuestion.type === 'NUMERICAL';
                                 const correctOpt = String(currentQuestion.correctOption || '').toLowerCase();
-                                const isBitsat = exam?.toLowerCase() === 'bitsat' || testId.toLowerCase().includes('bitsat');
-                                const posMarks = currentQuestion.marks ?? (isBitsat ? 3 : 4);
-                                const negMarks = currentQuestion.negativeMarks ?? 1;
+                                const posMarks = currentQuestion.marks ?? 1;
+                                const negMarks = currentQuestion.negativeMarks ?? 0;
 
                                 if (studentAns === undefined || studentAns === '') {
                                     return (
@@ -1615,10 +1614,24 @@ export default function TestPage({ params }) {
 
                     <div className={styles.questionText}>
                         <LatexRenderer text={currentQuestion.text || currentQuestion.question || ''} />
-                        {currentQuestion.image && <img src={currentQuestion.image} alt="Question Diagram" style={{ maxWidth: '100%', marginTop: '1rem', borderRadius: '8px' }} />}
+                        {currentQuestion.diagram && (
+                            <div 
+                                style={{ marginTop: '1.25rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'center' }}
+                                dangerouslySetInnerHTML={{ __html: currentQuestion.diagram }}
+                            />
+                        )}
+                        {currentQuestion.image && (
+                            <div style={{ marginTop: '1.25rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'center' }}>
+                                <img 
+                                    src={typeof currentQuestion.image === 'string' ? currentQuestion.image : (currentQuestion.image.url || '')} 
+                                    alt={typeof currentQuestion.image === 'object' ? (currentQuestion.image.alt || 'Question Illustration') : 'Question Illustration'} 
+                                    style={{ maxWidth: '100%', maxHeight: '360px', borderRadius: '8px', objectFit: 'contain', border: '1px solid rgba(255,255,255,0.1)' }} 
+                                />
+                            </div>
+                        )}
                     </div>
 
-                    {currentQuestion.type === 'NUMERICAL' && !(exam?.toLowerCase() === 'neet' || testId?.toLowerCase()?.startsWith('neet')) ? (
+                    {currentQuestion.type === 'NUMERICAL' ? (
                         <div style={{ marginTop: '1.5rem', background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
                             <h4 style={{ color: '#818cf8', marginBottom: '12px', fontSize: '0.95rem' }}>Numerical Answer Input:</h4>
                             <input 
@@ -1870,11 +1883,6 @@ export default function TestPage({ params }) {
 }
 
 const InstructionView = ({ exam, onStart, onBack, test }) => {
-    const isNeet = exam.toLowerCase().includes('neet');
-    const isJeeMains = exam.toLowerCase().includes('jee-mains');
-    const isJeeAdv = exam.toLowerCase().includes('jee-advance');
-    const isBitsat = exam.toLowerCase().includes('bitsat');
-
     return (
         <div className={`${styles.container} ${styles.instructionsWrapper}`}>
             <div className={styles.instructionsHeader}>
@@ -1898,98 +1906,37 @@ const InstructionView = ({ exam, onStart, onBack, test }) => {
             <div className={styles.instructionsCard}>
                 <p><strong>Total Duration:</strong> {test.duration} Minutes</p>
                 <p><strong>Total Questions:</strong> {test.questionsCount}</p>
-                <p><strong>Total Marks:</strong> {test.totalMarks}</p>
+                <p><strong>Total Marks:</strong> {test.totalMarks} Marks</p>
+                {test.classGrade && <p><strong>Target Grade:</strong> Class {test.classGrade}</p>}
+                {test.subject && <p><strong>Subject:</strong> {test.subject}</p>}
 
-                {/* Show Syllabus for Part Tests */}
-                {test.syllabus && (
+                {test.topics && test.topics.length > 0 && (
                     <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
-                        <h4 style={{ color: 'var(--accent)' }}>Syllabus Covered:</h4>
+                        <h4 style={{ color: 'var(--accent)', marginBottom: '8px' }}>Syllabus Topics Covered:</h4>
                         <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            {Object.entries(test.syllabus).map(([subject, chapters]) => (
-                                <div key={subject} style={{ marginBottom: '0.75rem' }}>
-                                    <strong style={{ color: 'var(--primary)' }}>{subject}:</strong> <span style={{ color: 'var(--foreground)' }}>{chapters.join(', ')}</span>
-                                </div>
-                            ))}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                {test.topics.map((t, idx) => (
+                                    <span key={idx} style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', padding: '4px 10px', borderRadius: '6px', fontSize: '0.82rem', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+                                        {t}
+                                    </span>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {isNeet && (
-                    <>
-                        <h4>NEET Exam Instructions:</h4>
-                        <ul style={{ paddingLeft: '20px', listStyle: 'disc' }}>
-                            <li>The test contains {test.questionsCount} questions{test.questionsCount === 180 ? ': Physics (45), Chemistry (45), Botany (45), Zoology (45)' : ''}.</li>
-                            <li>Each question carries 4 marks.</li>
-                            <li>For each incorrect answer, 1 mark will be deducted.</li>
-                            <li>Unattempted questions will be awarded 0 marks.</li>
-                            <li>You can navigate to any question using the Question Palette.</li>
-                        </ul>
-                    </>
-                )}
-
-                {isJeeMains && (
-                    <>
-                        <h4>JEE Mains Exam Instructions:</h4>
-                        <ul style={{ paddingLeft: '20px', listStyle: 'disc' }}>
-                            <li>The test contains {test.questionsCount} questions{test.questionsCount === 75 ? ': Physics (25), Chemistry (25), Mathematics (25)' : ''}.</li>
-                            <li>Each subject has two sections: Section A (MCQ) and Section B (Numerical).</li>
-                            <li>Section A carries 4 marks for correct answer and -1 for wrong answer.</li>
-                            <li>Section B usually has no negative marking (check specific paper rules).</li>
-                            <li>Use the palette to switch between questions.</li>
-                        </ul>
-                    </>
-                )}
-
-                {isJeeAdv && (
-                    <>
-                        <h4>JEE Advanced Exam Instructions:</h4>
-                        <ul style={{ paddingLeft: '20px', listStyle: 'disc' }}>
-                            <li>The paper pattern changes every year. Please check specific question instructions carefully.</li>
-                            <li>Marking scheme may include partial marking, negative marking, or zero negative marking.</li>
-                            <li>Subjects: Physics, Chemistry, Mathematics.</li>
-                            <li>Ensure you save your answer before moving to the next question.</li>
-                        </ul>
-                    </>
-                )}
-
-                {isBitsat && (test.type === 'SUBTOPIC' || test.id?.includes('SUBTOPIC')) && (
-                    <>
-                        <h4>BITSAT Subtopic Practice Instructions:</h4>
-                        <ul style={{ paddingLeft: '20px', listStyle: 'disc' }}>
-                            <li>This is a focused BITSAT Subtopic Test containing {test.questionsCount} Single-Correct Multiple Choice Questions.</li>
-                            <li>Total Duration: {test.duration} Minutes • Maximum Marks: {test.totalMarks} Marks.</li>
-                            <li>Each correct response carries +3 marks.</li>
-                            <li>Each incorrect response carries -1 mark penalty.</li>
-                            <li>Unattempted questions are awarded 0 marks.</li>
-                            <li>Use the Question Palette to navigate. Click &apos;Submit Test&apos; when completed.</li>
-                        </ul>
-                    </>
-                )}
-
-                {isBitsat && !(test.type === 'SUBTOPIC' || test.id?.includes('SUBTOPIC')) && (
-                    <>
-                        <h4>BITSAT Exam Instructions (Official 2027 Pattern):</h4>
-                        <ul style={{ paddingLeft: '20px', listStyle: 'disc' }}>
-                            <li>The test contains {test.questionsCount} questions across 5 sections: Physics (30), Chemistry (30), English Proficiency (10), Logical Reasoning (20), and {(test.subjectMode === 'biology' || testId.toLowerCase().includes('bio')) ? 'Biology (40)' : 'Mathematics (40)'}.</li>
-                            <li>Total Duration: {test.duration} Minutes • Maximum Marks: {test.totalMarks} Marks.</li>
-                            <li>Each correct response carries +3 marks.</li>
-                            <li>Each incorrect response carries -1 mark penalty.</li>
-                            <li>Unattempted questions are awarded 0 marks.</li>
-                            <li>You can freely navigate between sections and questions at any time using the Question Palette.</li>
-                        </ul>
-                    </>
-                )}
-
-                {!isNeet && !isJeeMains && !isJeeAdv && !isBitsat && (
-                    <>
-                        <h4>General Instructions:</h4>
-                        <ul style={{ paddingLeft: '20px', listStyle: 'disc' }}>
-                            <li>All questions are compulsory unless specified otherwise.</li>
-                            <li>Use the question palette on the right to navigate.</li>
-                            <li>Click &apos;Submit Test&apos; only when you have finished completely.</li>
-                        </ul>
-                    </>
-                )}
+                <div style={{ marginTop: '1.5rem' }}>
+                    <h4 style={{ color: '#38bdf8', marginBottom: '10px' }}>Olympiad Examination Instructions:</h4>
+                    <ul style={{ paddingLeft: '20px', listStyle: 'disc', lineHeight: '1.8', color: '#cbd5e1' }}>
+                        <li>This paper contains <strong>{test.questionsCount} Multiple Choice Questions</strong> calibrated to national and international Olympiad benchmarks.</li>
+                        <li><strong>Scoring Pattern:</strong> +{test.marksPerQuestion || 1} mark for each correct response. <strong>Zero (0) negative marks</strong> for incorrect or unattempted questions.</li>
+                        <li>All mathematical derivations, formulas, and scientific notation are rendered in precision KaTeX LaTeX.</li>
+                        <li>Integrated visual diagrams (geometry, electrical circuits, cellular biology, optics, and coordinate planes) are presented for visual analysis.</li>
+                        <li>Use the <strong>Question Palette</strong> to navigate directly to any question. Your responses are autosaved continuously in real time.</li>
+                        <li>You may review or change your answers at any point prior to clicking <strong>&quot;Submit Test&quot;</strong>.</li>
+                        <li>Upon final submission, your comprehensive performance analysis, percentile rank, and detailed step-by-step solutions will be generated instantly.</li>
+                    </ul>
+                </div>
 
                 <div style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(251, 191, 36, 0.1)', borderLeft: '4px solid #fbbf24', borderRadius: '4px' }}>
                     <p style={{ color: '#fbbf24', margin: 0 }}><strong>Note:</strong> Once you click &quot;Start Test&quot;, the timer will begin immediately.</p>

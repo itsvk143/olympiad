@@ -607,8 +607,8 @@ export async function GET(request) {
                 }
 
                 if (orderedQuestions.length > 0) {
-                    // Enforce exam-specific Assertion-Reasoning quotas and placement
-                    const examName = testPaper.exam || (testId.startsWith('neet') ? 'NEET' : testId.startsWith('jee-mains') ? 'JEE Main' : testId.startsWith('jee-advance') ? 'JEE Advanced' : 'Other');
+                    // Enforce exam-specific quotas and placement
+                    const examName = testPaper.exam || 'olympiad';
                     const { balancedQuestions, wasModified } = await balanceTestQuestions(orderedQuestions, db, testId, examName);
                     const finalQuestions = balancedQuestions.map((q, index) => ({ ...q, id: index + 1 }));
 

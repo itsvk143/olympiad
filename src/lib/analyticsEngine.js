@@ -69,8 +69,12 @@ export function categorizeTestId(testId = '', isLiveAttempt = false) {
  * @returns {{ id: string, name: string }}
  */
 export function extractExamType(result = {}) {
-    const rawExam = String(result.examType || '').toLowerCase().trim();
+    const rawExam = String(result.examType || result.exam || '').toLowerCase().trim();
     const testId = String(result.testId || '').toLowerCase().trim();
+
+    if (rawExam.includes('olympiad') || testId.includes('olympiad')) {
+        return { id: 'olympiad', name: 'Olympiad' };
+    }
 
     if (rawExam.includes('bitsat') || testId.includes('bitsat')) {
         return { id: 'bitsat', name: 'BITSAT' };
@@ -726,6 +730,10 @@ export function extractAvailableFilters(testResults = []) {
     });
 
     // Ensure common standard subjects for supported competitive exams
+    if (examMap.has('olympiad')) {
+        if (!subjectsByExam['olympiad']) subjectsByExam['olympiad'] = new Set();
+        ['Mathematics', 'Science', 'English'].forEach(s => subjectsByExam['olympiad'].add(s));
+    }
     if (examMap.has('neet')) {
         if (!subjectsByExam['neet']) subjectsByExam['neet'] = new Set();
         ['Physics', 'Chemistry', 'Botany', 'Zoology'].forEach(s => subjectsByExam['neet'].add(s));

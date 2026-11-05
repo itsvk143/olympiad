@@ -20,7 +20,7 @@ async function auditQuestion(question) {
     // Convert question to legacy format to use same prompt
     const legacyQ = formatQuestionToLegacy(question);
 
-    const auditPrompt = `You are a subject matter expert for competitive exams (NEET/JEE). Verify this MCQ.
+    const auditPrompt = `You are a subject matter expert for Olympiad examinations (Mathematics IMO, Science NSO, English IEO). Verify this MCQ.
 
 Question: ${legacyQ.text}
 Options:
