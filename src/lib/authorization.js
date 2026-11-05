@@ -1,54 +1,35 @@
 /**
  * Central Authorization & Access Control Service
- * Supports NEET, JEE Main, and BITSAT.
+ * Dedicated Olympiad Examination Platform (Classes 1 to 12).
  * Enforces strict 732-day authorization period upon payment confirmation.
  */
 
 export const AUTHORIZATION_DAYS = 732;
-export const CANONICAL_EXAMS = ['NEET', 'JEE_MAIN', 'BITSAT'];
+export const CANONICAL_EXAMS = ['OLYMPIAD'];
 
 /**
  * Validates and converts any exam identifier to strict canonical enum:
- * 'NEET' | 'JEE_MAIN' | 'BITSAT'. Returns '' if invalid.
- * Strictly rejects arrays, JEE Advanced, and combined options.
+ * 'OLYMPIAD'. Preserves backward compatibility for legacy strings.
  */
 export function normalizeToCanonicalExam(exam) {
-    if (!exam || Array.isArray(exam)) return '';
-    const str = String(exam).trim();
-    const upper = str.toUpperCase().replace(/[\s-]+/g, '_');
-
-    // Explicitly reject forbidden multi-exam or unsupported values
-    if (upper.includes('ADVANCE') || upper.includes('BOTH') || upper.includes('ALL') || upper.includes('+') || upper.includes('&')) {
-        return '';
-    }
-
-    if (upper === 'NEET') return 'NEET';
-    if (upper === 'JEE_MAIN' || upper === 'JEE_MAINS' || upper === 'JEEM' || upper === 'JEE') return 'JEE_MAIN';
-    if (upper === 'BITSAT') return 'BITSAT';
-    return '';
+    if (!exam || Array.isArray(exam)) return 'OLYMPIAD';
+    const str = String(exam).trim().toUpperCase();
+    if (str.includes('OLYMPIAD')) return 'OLYMPIAD';
+    // Map legacy representations to OLYMPIAD
+    if (str === 'NEET' || str.includes('JEE') || str.includes('BITSAT')) return 'OLYMPIAD';
+    return 'OLYMPIAD';
 }
 
 export function canonicalToExamSlug(canonicalExam) {
-    if (canonicalExam === 'NEET') return 'neet';
-    if (canonicalExam === 'JEE_MAIN') return 'jee-mains';
-    if (canonicalExam === 'BITSAT') return 'bitsat';
-    return '';
+    return 'olympiad';
 }
 
 export function examSlugToCanonical(slug) {
-    if (!slug) return '';
-    const s = String(slug).trim().toLowerCase();
-    if (s === 'neet') return 'NEET';
-    if (s === 'jee-mains' || s === 'jee-main' || s === 'jeem') return 'JEE_MAIN';
-    if (s === 'bitsat') return 'BITSAT';
-    return '';
+    return 'OLYMPIAD';
 }
 
 export function getCanonicalExamDisplay(canonicalExam) {
-    if (canonicalExam === 'NEET') return 'NEET';
-    if (canonicalExam === 'JEE_MAIN') return 'JEE MAIN';
-    if (canonicalExam === 'BITSAT') return 'BITSAT';
-    return canonicalExam || '';
+    return 'Olympiad';
 }
 
 /**
@@ -60,34 +41,14 @@ export function calculate732DayExpiry(startDate = new Date()) {
 }
 
 export function extractTestExam(testId = '', testObject = null, examSlug = '') {
-    const id = String(testId || testObject?.id || testObject?.testId || '').trim().toLowerCase();
-    if (id.startsWith('neet') || id.includes('neet-') || id.includes('-neet')) return 'NEET';
-    if (id.startsWith('jee-mains') || id.startsWith('jee-main') || id.startsWith('jeem') || id.includes('jee-mains') || id.includes('jeem-')) return 'JEE_MAIN';
-    if (id.startsWith('bitsat') || id.includes('bitsat-') || id.includes('-bitsat')) return 'BITSAT';
-
-    if (testObject?.exam) {
-        const canonical = normalizeToCanonicalExam(testObject.exam);
-        if (canonical) return canonical;
-    }
-
-    if (examSlug) {
-        const fromSlug = examSlugToCanonical(examSlug) || normalizeToCanonicalExam(examSlug);
-        if (fromSlug) return fromSlug;
-    }
-
-    return '';
+    return 'OLYMPIAD';
 }
 
 /**
  * Normalizes exam names for access checking.
  */
 export function normalizeExam(exam) {
-    if (!exam) return '';
-    const s = exam.toString().trim().toLowerCase();
-    if (s.includes('neet')) return 'neet';
-    if (s.includes('jee')) return 'jee-mains';
-    if (s.includes('bitsat')) return 'bitsat';
-    return s;
+    return 'olympiad';
 }
 
 /**
@@ -190,8 +151,7 @@ export function checkStudentAuthorization(user) {
 }
 
 /**
- * Checks test access for a specific test and exam.
- * Combines Student Authorization + Strict Single Exam Match + Test Category Permission.
+ * Checks test access for a specific Olympiad test.
  */
 export function checkTestAccess(user, testIdOrTest, examHint = '') {
     const authStatus = checkStudentAuthorization(user);
@@ -204,90 +164,9 @@ export function checkTestAccess(user, testIdOrTest, examHint = '') {
         return { allowed: true, isAdmin: true };
     }
 
-    const testId = typeof testIdOrTest === 'string' ? testIdOrTest : (testIdOrTest?.id || testIdOrTest?.testId || '');
-    const testObject = typeof testIdOrTest === 'object' ? testIdOrTest : null;
-    const testIdUpper = testId.toUpperCase();
-
-    // 1. Identify test exam in canonical form
-    const testExam = extractTestExam(testId, testObject, examHint);
-
-    // 2. Verify student's ONE assigned exam
-    const studentExam = normalizeToCanonicalExam(user.exam || user.examPreparingFor);
-
-    if (!studentExam) {
-        return {
-            allowed: false,
-            reason: 'EXAM_NOT_ASSIGNED',
-            message: 'Please complete your student registration and select your exam.'
-        };
-    }
-
-    // Critical rule: ONE STUDENT = ONE EXAM. STUDENT EXAM must equal TEST EXAM.
-    if (testExam && studentExam !== testExam) {
-        return {
-            allowed: false,
-            reason: 'EXAM_MISMATCH',
-            studentExam,
-            testExam,
-            message: `ACCESS DENIED: Your account is registered for ${getCanonicalExamDisplay(studentExam)}. You cannot access ${getCanonicalExamDisplay(testExam)} tests.`
-        };
-    }
-
-    // 3. Identify test category / permission key
-    // Permitted categories: mock, part, live, subject, chapter, subtopic
-    let requiredKey = 'mock';
-    if (testIdUpper.includes('-PART-') || testIdOrTest?.type === 'PART') {
-        requiredKey = 'part';
-    } else if (testIdUpper.includes('-LIVE-') || testIdUpper.includes('-SUNDAY-') || testIdOrTest?.type === 'LIVE') {
-        requiredKey = 'live';
-    } else if (testIdUpper.includes('-SUBJECT-') || testIdOrTest?.type === 'SUBJECT') {
-        requiredKey = 'subject';
-    } else if (testIdUpper.includes('-CHAPTER-') || testIdOrTest?.type === 'CHAPTER') {
-        requiredKey = 'chapter';
-    } else if (testIdUpper.includes('-SUBTOPIC-') || testIdOrTest?.type === 'SUBTOPIC') {
-        requiredKey = 'subtopic';
-    } else if (testIdUpper.includes('-MOCK-') || testIdOrTest?.type === 'MOCK') {
-        requiredKey = 'mock';
-    }
-
-    // 4. Check permissions (supports exam-specific approvals or flat approvals)
-    const approvals = user.approvals || {};
-    let hasPermission = false;
-
-    const checkApproval = (apprObj) => {
-        if (!apprObj) return false;
-        if (requiredKey === 'part') {
-            return apprObj.part !== undefined ? !!apprObj.part : (!!apprObj.mock || !!apprObj.live);
-        }
-        return !!apprObj[requiredKey];
-    };
-
-    if (testExam && approvals[testExam] && typeof approvals[testExam] === 'object') {
-        hasPermission = checkApproval(approvals[testExam]);
-    } else {
-        hasPermission = checkApproval(approvals);
-    }
-
-    if (!hasPermission) {
-        const categoryLabels = {
-            mock: 'Full Tests',
-            part: 'Part Tests',
-            live: 'Cumulative / Live Tests',
-            subject: 'Subject-wise Tests',
-            chapter: 'Chapter-wise Tests',
-            subtopic: 'Topic-wise Tests'
-        };
-        return {
-            allowed: false,
-            reason: 'PERMISSION_DENIED',
-            category: requiredKey,
-            message: `You do not have access to ${categoryLabels[requiredKey] || requiredKey.toUpperCase()}. Please contact your administrator to grant access.`
-        };
-    }
-
+    // Authorized paid students have full access to Olympiad tests
     return {
         allowed: true,
-        category: requiredKey,
         daysRemaining: authStatus.daysRemaining,
         authorizationExpiryDate: authStatus.authorizationExpiryDate
     };

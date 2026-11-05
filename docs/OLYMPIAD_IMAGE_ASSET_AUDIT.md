@@ -22,3 +22,4 @@ In accordance with Section 8, 9, and 10 of the Master Prompt:
 | `img-sci-photosyn-01` | Diagram (SVG) | Science | 6 | Photosynthesis energy cycle | SVG inline / public/images | Verified |
 | `img-sci-solar-01` | Photograph | Science | 4 | Real-world Solar Eclipse corona | WebP / public/images | Verified |
 | `img-eng-vocab-01` | Illustration | English | 2 | Action verbs and object identification | SVG inline / public/images | Verified |
+

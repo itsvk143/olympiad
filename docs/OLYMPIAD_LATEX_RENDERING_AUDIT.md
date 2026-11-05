@@ -32,3 +32,4 @@
 | Chemistry | `\ce{2H2 + O2 -> 2H2O}, \quad \ce{CaCO3 -> CaO + CO2 ^}` | Verified |
 | Matrices | `\begin{bmatrix} a & b \\ c & d \end{bmatrix}` | Verified |
 | English | `\text{Select the synonym for } \textbf{tenacious}:` | Verified |
+

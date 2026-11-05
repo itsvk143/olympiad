@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "PollTestSeries - Master Your Exams",
-  description: "Premium Test Series for NEET, JEE Mains, and BITSAT. Practice with authentic mock tests, subjectwise, chapterwise, and topic tests.",
+  title: "Olympiad Examination Platform — Mathematics, Science & English (Classes 1–12)",
+  description: "Dedicated national and international Olympiad examination platform for Classes 1 to 12 in Mathematics, Science, and English with 360 test papers, KaTeX LaTeX rendering, and visual solutions.",
 };
 
 import AuthProvider from "../components/AuthProvider";

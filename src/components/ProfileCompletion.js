@@ -52,8 +52,8 @@ export default function ProfileCompletion({ user, onComplete }) {
         coachingName: '',
         city: '',
         state: '',
-        exam: '',
-        examPreparingFor: '',
+        exam: 'OLYMPIAD',
+        examPreparingFor: 'Olympiad',
         studentClass: ''
     });
     const [loading, setLoading] = useState(false);
@@ -74,7 +74,7 @@ export default function ProfileCompletion({ user, onComplete }) {
             newErrors.mobileNo = 'Please enter a valid 10-digit mobile number';
         }
 
-        if (!formData.exam) newErrors.exam = 'Please select exactly one exam: NEET, JEE MAIN, or BITSAT';
+        if (!formData.exam) formData.exam = 'OLYMPIAD';
         if (!formData.studentClass) newErrors.studentClass = 'Please select your class';
         if (!formData.state) newErrors.state = 'Please select your state';
         if (!formData.city) newErrors.city = 'Please select your city';
@@ -148,9 +148,7 @@ export default function ProfileCompletion({ user, onComplete }) {
     });
 
     const EXAM_OPTIONS = [
-        { id: 'NEET', label: 'NEET', desc: 'Medical Entrance (Physics, Chemistry, Biology)' },
-        { id: 'JEE_MAIN', label: 'JEE MAIN', desc: 'Engineering Entrance (Physics, Chemistry, Mathematics)' },
-        { id: 'BITSAT', label: 'BITSAT', desc: 'BITS Pilani Entrance (5 Sections including Eng & LR)' }
+        { id: 'OLYMPIAD', label: 'Olympiad Series', desc: 'Mathematics (IMO), Science (NSO), and English (IEO) for Classes 1 to 12' }
     ];
 
     return (
@@ -276,9 +274,18 @@ export default function ProfileCompletion({ user, onComplete }) {
                             <select id="studentClass" name="studentClass" value={formData.studentClass}
                                 onChange={handleChange} style={selectStyle(!!errors.studentClass)}>
                                 <option value="">Select your class</option>
+                                <option value="Class 1">Class 1</option>
+                                <option value="Class 2">Class 2</option>
+                                <option value="Class 3">Class 3</option>
+                                <option value="Class 4">Class 4</option>
+                                <option value="Class 5">Class 5</option>
+                                <option value="Class 6">Class 6</option>
+                                <option value="Class 7">Class 7</option>
+                                <option value="Class 8">Class 8</option>
+                                <option value="Class 9">Class 9</option>
+                                <option value="Class 10">Class 10</option>
                                 <option value="Class 11">Class 11</option>
                                 <option value="Class 12">Class 12</option>
-                                <option value="12 Passed">12 Passed</option>
                             </select>
                             {errors.studentClass && <span className={styles.error}>{errors.studentClass}</span>}
                         </div>

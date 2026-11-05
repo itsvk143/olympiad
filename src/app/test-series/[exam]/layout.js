@@ -1,30 +1,17 @@
 export async function generateMetadata({ params }) {
-    // Determine exact param value early
     const { exam } = await params;
-    
-    // Format exam name: "jee-mains" -> "JEE Mains", "neet" -> "NEET"
-    const formatName = (str) => {
-        if (!str) return 'Exams';
-        if (str.toLowerCase() === 'neet') return 'NEET';
-        if (str.toLowerCase() === 'jee-mains') return 'JEE Mains';
-        if (str.toLowerCase() === 'bitsat') return 'BITSAT';
-        // Auto fallback
-        return str.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    };
-    
-    const formatted = formatName(exam);
-    
+    const isOlympiad = !exam || exam.toLowerCase().includes('olympiad');
+
     return {
-        title: `${formatted} Test Series & Mock Tests | PollTestSeries`,
-        description: `Access premium topic-wise, chapter-wise, and full-length tests for ${formatted}. Track your progress and master your exams.`,
+        title: `National & International Olympiad Test Series | Classes 1–12`,
+        description: `Access official-pattern Olympiad mock tests for Classes 1 to 12 in Mathematics (IMO), Science (NSO), and English (IEO) with KaTeX LaTeX rendering and visual solutions.`,
         openGraph: {
-            title: `${formatted} Premium Test Series`,
-            description: `Boost your score in ${formatted} with real-time test analysis!`,
+            title: `Olympiad Examination Platform — Mathematics, Science & English`,
+            description: `Master Olympiad competitions with 360 full tests, authentic diagrams, and performance analytics.`,
         }
     };
 }
 
-// Pass children gracefully. Next.js natively wraps page.js within this.
 export default function ExamLayout({ children }) {
     return <>{children}</>;
 }

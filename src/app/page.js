@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import styles from './page.module.css';
-import { Target, LineChart, BookOpen, ShieldCheck, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Target, LineChart, BookOpen, ShieldCheck, ChevronRight, CheckCircle2, Award, Sparkles } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -14,30 +14,28 @@ export default function Home() {
           <div className={styles.heroContent}>
             <div className={styles.badge}>
               <span className={styles.badgeText}>New</span>
-              Updated for NEET & JEE 2027 Syllabus
+              Dedicated Olympiad Examination Platform • Classes 1–12
             </div>
             <h1 className={styles.title}>
-              The Ultimate <span className={styles.highlight}>Test Series</span> Platform
+              Master National & International <span className={styles.highlight}>Olympiads</span>
             </h1>
             <p className={styles.description}>
-              Elevate your preparation for NEET, JEE Mains, and BITSAT with state-of-the-art mock tests, real-time analytics, and comprehensive PYQs.
+              Empowering students from Class 1 to Class 12 in Mathematics (IMO/iOM), Science (NSO/iOS), and English (IEO/iOEL) with 360 official-pattern examination papers, KaTeX LaTeX rendering, and high-accuracy visual questions.
             </p>
             <div className={styles.ctaGroup}>
-              <Link href="/test-series/neet" className={styles.primaryButton}>
-                Explore NEET <ChevronRight size={18} />
+              <Link href="/test-series" className={styles.primaryButton}>
+                Explore Olympiad Papers <ChevronRight size={18} />
               </Link>
-              <Link href="/test-series/jee-mains" className={styles.secondaryButton}>
-                Explore JEE Mains
-              </Link>
-              <Link href="/test-series/bitsat" className={styles.secondaryButton}>
-                Explore BITSAT
+              <Link href="/about" className={styles.secondaryButton}>
+                About Olympiads
               </Link>
             </div>
             
             <div className={styles.trustIndicators}>
-              <div className={styles.trustItem}><CheckCircle2 size={16} className={styles.trustIcon} /> 100% NCERT Based</div>
-              <div className={styles.trustItem}><CheckCircle2 size={16} className={styles.trustIcon} /> Real Exam Interface</div>
-              <div className={styles.trustItem}><CheckCircle2 size={16} className={styles.trustIcon} /> Detailed Solutions</div>
+              <div className={styles.trustItem}><CheckCircle2 size={16} className={styles.trustIcon} /> 10-Year Olympiad Research (2016–2025)</div>
+              <div className={styles.trustItem}><CheckCircle2 size={16} className={styles.trustIcon} /> Rigorous LaTeX Equations</div>
+              <div className={styles.trustItem}><CheckCircle2 size={16} className={styles.trustIcon} /> Authentic Diagrams & Photographs</div>
+              <div className={styles.trustItem}><CheckCircle2 size={16} className={styles.trustIcon} /> Classes 1 to 12</div>
             </div>
           </div>
         </section>
@@ -46,94 +44,144 @@ export default function Home() {
         <section className={styles.statsSection}>
           <div className={styles.statsGrid}>
             <div className={styles.statCard}>
-              <h3 className={styles.statNumber}>50,000+</h3>
-              <p className={styles.statLabel}>Questions Practiced</p>
+              <h3 className={styles.statNumber}>360</h3>
+              <p className={styles.statLabel}>Full Olympiad Papers</p>
             </div>
             <div className={styles.statCard}>
-              <h3 className={styles.statNumber}>150+</h3>
-              <p className={styles.statLabel}>Full Syllabus Mocks</p>
+              <h3 className={styles.statNumber}>13,800+</h3>
+              <p className={styles.statLabel}>Curated Olympiad Questions</p>
             </div>
             <div className={styles.statCard}>
-              <h3 className={styles.statNumber}>10,000+</h3>
-              <p className={styles.statLabel}>Active Aspirants</p>
+              <h3 className={styles.statNumber}>12</h3>
+              <p className={styles.statLabel}>Classes Supported (1–12)</p>
             </div>
             <div className={styles.statCard}>
-              <h3 className={styles.statNumber}>99.9%</h3>
-              <p className={styles.statLabel}>Accuracy Rate</p>
+              <h3 className={styles.statNumber}>3</h3>
+              <p className={styles.statLabel}>Core Subjects (Math, Sci, Eng)</p>
             </div>
           </div>
         </section>
 
-        {/* FEATURES SECTION */}
+        {/* THREE CORE OLYMPIAD DISCIPLINES */}
+        <section style={{ maxWidth: '1200px', margin: '4rem auto', padding: '0 1rem' }}>
+          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <h2 style={{ fontSize: '2rem', fontWeight: '800', color: '#f8fafc', marginBottom: '0.75rem' }}>
+              Three Pillars of Academic Excellence
+            </h2>
+            <p style={{ color: '#94a3b8', fontSize: '1rem', maxWidth: '640px', margin: '0 auto' }}>
+              Structured 10-paper series calibrated from foundational concept tests up to national-level invitationals.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(30, 41, 59, 0.5) 100%)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: '16px',
+              padding: '2rem'
+            }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📐</div>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: '700', color: '#60a5fa', marginBottom: '0.75rem' }}>
+                Mathematics Olympiad
+              </h3>
+              <p style={{ color: '#cbd5e1', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '1.5rem' }}>
+                Aligned with IMO, iOM, and UIMO. Develops number sense, arithmetic, geometry, algebra, combinatorics, and high-order spatial reasoning with clean KaTeX equations.
+              </p>
+              <Link href="/test-series?subject=mathematics" style={{ color: '#38bdf8', fontWeight: '700', textDecoration: 'none' }}>
+                Explore Math Papers →
+              </Link>
+            </div>
+
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(30, 41, 59, 0.5) 100%)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              borderRadius: '16px',
+              padding: '2rem'
+            }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🔬</div>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: '700', color: '#34d399', marginBottom: '0.75rem' }}>
+                Science Olympiad
+              </h3>
+              <p style={{ color: '#cbd5e1', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '1.5rem' }}>
+                Aligned with NSO, iOS, and NSTSE. Covers physics, chemistry, biology, environmental sciences, experimental apparatus, and vector circuit/cell diagrams.
+              </p>
+              <Link href="/test-series?subject=science" style={{ color: '#34d399', fontWeight: '700', textDecoration: 'none' }}>
+                Explore Science Papers →
+              </Link>
+            </div>
+
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(30, 41, 59, 0.5) 100%)',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              borderRadius: '16px',
+              padding: '2rem'
+            }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📚</div>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: '700', color: '#a78bfa', marginBottom: '0.75rem' }}>
+                English Olympiad
+              </h3>
+              <p style={{ color: '#cbd5e1', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '1.5rem' }}>
+                Aligned with IEO and iOEL. Sharpens grammar, advanced syntax, reading comprehension, idioms, verbal analogies, and contextual vocabulary for young learners and seniors alike.
+              </p>
+              <Link href="/test-series?subject=english" style={{ color: '#a78bfa', fontWeight: '700', textDecoration: 'none' }}>
+                Explore English Papers →
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* FEATURES GRID */}
         <section className={styles.featuresSection}>
           <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Why Choose Our Platform?</h2>
-            <p className={styles.sectionSubtitle}>Everything you need to secure your top rank, built into one seamless experience.</p>
+            <h2 className={styles.sectionTitle}>Why Choose PollTest.in Olympiad Platform?</h2>
+            <p className={styles.sectionSubtitle}>
+              Engineered specifically for school students from primary grades through senior secondary.
+            </p>
           </div>
-          
+
           <div className={styles.featuresGrid}>
             <div className={styles.featureCard}>
               <div className={styles.featureIconWrapper}>
                 <Target className={styles.featureIcon} />
               </div>
-              <h3 className={styles.featureTitle}>Real NTA Simulator</h3>
-              <p className={styles.featureDesc}>Experience the exact interface of the actual exam so you feel completely at home on test day.</p>
+              <h3 className={styles.featureTitle}>LaTeX Mathematical Engine</h3>
+              <p className={styles.featureDescription}>
+                Mathematical and chemical notation rendered flawlessly with KaTeX, preventing broken symbols or illegible fractions.
+              </p>
             </div>
-            
-            <div className={styles.featureCard}>
-              <div className={styles.featureIconWrapper}>
-                <LineChart className={styles.featureIcon} />
-              </div>
-              <h3 className={styles.featureTitle}>Advanced Analytics</h3>
-              <p className={styles.featureDesc}>Get deep insights into your performance with subject-wise time tracking and accuracy heatmaps.</p>
-            </div>
-            
+
             <div className={styles.featureCard}>
               <div className={styles.featureIconWrapper}>
                 <BookOpen className={styles.featureIcon} />
               </div>
-              <h3 className={styles.featureTitle}>Structured Revision</h3>
-              <p className={styles.featureDesc}>Follow our carefully curated 24-test revision modules that perfectly align with the latest syllabus.</p>
+              <h3 className={styles.featureTitle}>Accurate Visual Questions</h3>
+              <p className={styles.featureDescription}>
+                Programmatic diagrams and real-world photographs integrated into questions where visual interpretation is the learning objective.
+              </p>
             </div>
-            
+
+            <div className={styles.featureCard}>
+              <div className={styles.featureIconWrapper}>
+                <LineChart className={styles.featureIcon} />
+              </div>
+              <h3 className={styles.featureTitle}>Instant Performance Insights</h3>
+              <p className={styles.featureDescription}>
+                Subject-wise scoring, topic strengths, time allocation, and percentile benchmarking to guide focused preparation.
+              </p>
+            </div>
+
             <div className={styles.featureCard}>
               <div className={styles.featureIconWrapper}>
                 <ShieldCheck className={styles.featureIcon} />
               </div>
-              <h3 className={styles.featureTitle}>Error-Free Content</h3>
-              <p className={styles.featureDesc}>Every question is verified by top educators and our expert AI pipelines for maximum reliability.</p>
+              <h3 className={styles.featureTitle}>Age-Appropriate Examination UI</h3>
+              <p className={styles.featureDescription}>
+                Tailored question palette and friendly buttons for Classes 1–5, with full-rigor competition interfaces for Classes 6–12.
+              </p>
             </div>
           </div>
         </section>
-
       </main>
-
-      {/* FOOTER */}
-      <footer className={styles.footer}>
-        <div className={styles.footerContent}>
-          <div className={styles.footerBrand}>
-            <h2>PollTestSeries</h2>
-            <p>Empowering the next generation of top rankers.</p>
-          </div>
-          <div className={styles.footerLinks}>
-            <div className={styles.linkColumn}>
-              <h4>Exams</h4>
-              <Link href="/test-series/neet">NEET UG</Link>
-              <Link href="/test-series/jee-mains">JEE Mains</Link>
-              <Link href="/test-series/bitsat">BITSAT</Link>
-            </div>
-            <div className={styles.linkColumn}>
-              <h4>Legal</h4>
-              <Link href="/privacy-policy">Privacy Policy</Link>
-              <Link href="/terms-of-service">Terms of Service</Link>
-              <Link href="/contact">Contact Us</Link>
-            </div>
-          </div>
-        </div>
-        <div className={styles.footerBottom}>
-          <p>&copy; {new Date().getFullYear()} PollTestSeries. All rights reserved.</p>
-        </div>
-      </footer>
     </div>
   );
 }

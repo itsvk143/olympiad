@@ -1,10 +1,6 @@
 import clientPromise from '@/lib/mongodb';
 import { auth } from '@/lib/auth';
-import { neetTests } from '@/data/exams/neet';
-import { jeeMainsTests } from '@/data/exams/jeeMains';
-import { bitsatTests } from '@/data/exams/bitsat';
-import { getQuestionsForTest } from '@/data/testService';
-import { formatQuestionToCentralized } from '@/lib/questionFormatter';
+import { olympiadTests } from '@/data/exams/olympiad';
 
 export async function GET() {
     try {
@@ -16,90 +12,86 @@ export async function GET() {
         const client = await clientPromise;
         const db = client.db();
 
-        const allTests = [
-            ...neetTests,
-            ...jeeMainsTests,
-                        ...bitsatTests
-        ];
-
         let initializedCount = 0;
-        let skippedCount = 0;
+        let updatedCount = 0;
 
-        for (const test of allTests) {
+        for (const test of olympiadTests) {
             const testId = test.id;
             const existing = await db.collection('testPapers').findOne({ testId });
+
             if (existing) {
-                // If it exists but has questions, make sure the questions have chapters updated
-                const testChapter = test.chapter || '';
-                if (testChapter) {
-                    await db.collection('questionBank').updateMany(
-                        { _id: { $in: existing.questions || [] }, chapter: '' },
-                        { $set: { chapter: testChapter, topic: testChapter } }
-                    );
-                }
-                skippedCount++;
-                continue;
-            }
-
-            const fbQs = getQuestionsForTest(testId) || [];
-            const testChapter = test.chapter || '';
-            const questionIds = [];
-
-            for (const q of fbQs) {
-                const centralQ = formatQuestionToCentralized(q);
-                if ((!centralQ.chapter || centralQ.chapter === '') && testChapter) {
-                    centralQ.chapter = testChapter;
-                    centralQ.topic = testChapter;
-                }
-                if (testId.includes('SUBTOPIC') && test.title) {
-                    centralQ.subTopic = test.title;
-                }
-
-                // De-duplicate
-                let existingQ = await db.collection('questionBank').findOne({
-                    subject: centralQ.subject,
-                    question: centralQ.question
-                });
-                if (existingQ) {
-                    questionIds.push(existingQ._id);
-                } else {
-                    const res = await db.collection('questionBank').insertOne(centralQ);
-                    questionIds.push(res.insertedId);
-                }
-            }
-
-            // Create test paper metadata
-            const exam = testId.startsWith('neet') ? 'NEET' : testId.startsWith('jee-mains') ? 'JEE Main' : testId.startsWith('bitsat') ? 'BITSAT' : 'Other';
-            const subject = test.subject || (testId.includes('Physics') ? 'Physics' : testId.includes('Chemistry') ? 'Chemistry' : testId.includes('Mathematics') ? 'Mathematics' : 'Mixed');
-            const title = test.title || testId.replace(/-/g, ' ');
-            const duration = test.duration || (testId.includes('SUBJECT') || testId.includes('CHAPTER') ? 60 : 180);
-            const totalMarks = test.totalMarks || (exam === 'NEET' ? (duration === 60 ? 180 : 720) : (duration === 60 ? 100 : 300));
-
-            try {
+                // Keep existing questions, update metadata
+                await db.collection('testPapers').updateOne(
+                    { testId },
+                    {
+                        $set: {
+                            title: test.title,
+                            subject: test.subject,
+                            subjectSlug: test.subjectSlug,
+                            classGrade: test.classGrade,
+                            studentClass: test.studentClass,
+                            paperNumber: test.paperNumber,
+                            paperCode: test.paperCode,
+                            exam: 'olympiad',
+                            examType: 'Olympiad',
+                            category: 'olympiad',
+                            type: 'MOCK',
+                            duration: test.duration,
+                            totalMarks: test.totalMarks,
+                            questionsCount: test.questionsCount,
+                            marksPerQuestion: test.marksPerQuestion,
+                            negativeMarks: test.negativeMarks,
+                            difficulty: test.difficulty,
+                            difficultyDistribution: test.difficultyDistribution,
+                            topics: test.topics,
+                            description: test.description,
+                            updatedAt: new Date()
+                        }
+                    }
+                );
+                updatedCount++;
+            } else {
+                // Insert new Olympiad test paper
                 await db.collection('testPapers').insertOne({
                     testId,
-                    title,
-                    exam,
-                    subject,
-                    duration,
-                    totalMarks,
-                    questions: questionIds,
+                    title: test.title,
+                    subject: test.subject,
+                    subjectSlug: test.subjectSlug,
+                    classGrade: test.classGrade,
+                    studentClass: test.studentClass,
+                    paperNumber: test.paperNumber,
+                    paperCode: test.paperCode,
+                    exam: 'olympiad',
+                    examType: 'Olympiad',
+                    category: 'olympiad',
+                    type: 'MOCK',
+                    duration: test.duration,
+                    totalMarks: test.totalMarks,
+                    questionsCount: test.questionsCount,
+                    marksPerQuestion: test.marksPerQuestion,
+                    negativeMarks: test.negativeMarks,
+                    difficulty: test.difficulty,
+                    difficultyDistribution: test.difficultyDistribution,
+                    topics: test.topics,
+                    description: test.description,
+                    questions: [],
+                    status: 'PUBLISHED',
                     createdAt: new Date(),
                     updatedAt: new Date()
                 });
                 initializedCount++;
-            } catch (e) {
-                if (e.code === 11000) {
-                    skippedCount++; // Already exists (race condition), treat as skipped
-                } else {
-                    throw e;
-                }
             }
         }
 
-        return Response.json({ success: true, initializedCount, skippedCount });
-    } catch (error) {
-        console.error('Initialize all tests API error:', error);
-        return Response.json({ error: error.message }, { status: 500 });
+        return Response.json({
+            success: true,
+            totalOlympiadTests: olympiadTests.length,
+            initializedCount,
+            updatedCount,
+            message: `Successfully initialized ${initializedCount} new and updated ${updatedCount} existing Olympiad test papers.`
+        });
+    } catch (err) {
+        console.error('Failed to initialize Olympiad tests:', err);
+        return Response.json({ error: err.message || 'Initialization failed' }, { status: 500 });
     }
 }

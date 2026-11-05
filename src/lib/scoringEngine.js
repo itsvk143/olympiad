@@ -66,10 +66,9 @@ export function calculateTestResult({
     const testId = (testDefinition.id || testDefinition.testId || '').toLowerCase();
     const examType = (testDefinition.examType || testDefinition.category || '').toLowerCase();
 
-    // Determine default marking scheme
-    const isBitsat = examType.includes('bitsat') || testId.includes('bitsat');
-    const defaultPosMarks = isBitsat ? 3 : 4;
-    const defaultNegMarks = 1;
+    // Olympiad default marking scheme (1 mark, 0 negative marks unless specified)
+    const defaultPosMarks = testDefinition.marksPerQuestion ?? 1;
+    const defaultNegMarks = testDefinition.negativeMarks ?? 0;
 
     let totalQuestions = questions?.length || 0;
     let evaluatedQuestions = 0;

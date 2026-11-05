@@ -33,7 +33,7 @@ export async function POST(request, { params }) {
         const canonicalNewExam = normalizeToCanonicalExam(newExam);
         if (!canonicalNewExam || !CANONICAL_EXAMS.includes(canonicalNewExam)) {
             return Response.json({
-                error: 'Invalid exam selection. Allowed exams are exactly: NEET, JEE_MAIN, or BITSAT.'
+                error: 'Invalid exam selection. Allowed exam is: OLYMPIAD.'
             }, { status: 400 });
         }
 

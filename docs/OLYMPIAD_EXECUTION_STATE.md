@@ -47,3 +47,4 @@
 2. Remove legacy admin panels (`BitsatBlueprintPanel.js`, `BitsatSubtopicManager.js`, `JeeChemAuditModal.js`, `chapter-mapping-audit/`).
 3. Remove legacy exam data definitions (`bitsat.js`, `jeeMains.js`, `neet.js`, `bitsatBlueprint.js`, `chapters.js`).
 4. Decouple and update `src/lib/authorization.js`, `src/lib/scoringEngine.js`, and `src/components/Navbar.js`.
+

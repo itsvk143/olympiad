@@ -3,14 +3,11 @@ import dynamic from 'next/dynamic';
 import styles from './page.module.css';
  
 const LatexRenderer = dynamic(() => import('../../components/LatexRenderer'), { ssr: false });
-import { neetChapters, neetTests } from '../../data/exams/neet';
-import { jeeMainsChapters, jeeMainsTests } from '../../data/exams/jeeMains';
-import { bitsatChapters } from '../../data/exams/bitsat';
+import { olympiadTests } from '../../data/exams/olympiad';
+import { OLYMPIAD_SYLLABUS } from '../../data/exams/olympiadSyllabus';
 
 const subjectsByExam = {
-    neet: ['Physics', 'Chemistry', 'Botany', 'Zoology'],
-    'jee-mains': ['Physics', 'Chemistry', 'Mathematics'],
-    bitsat: ['Physics', 'Chemistry', 'Mathematics', 'English Proficiency', 'Logical Reasoning']
+    olympiad: ['Mathematics', 'Science', 'English']
 };
 
 // ── AI Generate Panel ──────────────────────────────────────────────────────
@@ -721,9 +718,7 @@ export default function TestManager({ selectedExam, availableTests, autoCreate, 
                                 {(testForm.type === 'CHAPTER' || testForm.type === 'SUBTOPIC') && (
                                     <label>Chapter Name
                                         {(() => {
-                                            const allChapterData = { neet: neetChapters, 'jee-mains': jeeMainsChapters,  bitsat: bitsatChapters };
-                                            const subjectChapters = allChapterData[selectedExam]?.[testForm.subject] || {};
-                                            const chapters = Object.values(subjectChapters).flat();
+                                            const chapters = OLYMPIAD_SYLLABUS[testForm.subject] ? Object.values(OLYMPIAD_SYLLABUS[testForm.subject]).flat() : [];
 
                                             return chapters.length > 0 ? (
                                                 <select

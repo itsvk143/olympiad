@@ -4,18 +4,13 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import styles from './page.module.css';
-import { neetTests } from '../../data/exams/neet';
-import { jeeMainsTests } from '../../data/exams/jeeMains';
-import { neetChapters } from '../../data/exams/neet';
-import { jeeMainsChapters } from '../../data/exams/jeeMains';
-import { bitsatTests, bitsatChapters } from '../../data/exams/bitsat';
+import { olympiadTests } from '../../data/exams/olympiad';
+import { OLYMPIAD_SYLLABUS } from '../../data/exams/olympiadSyllabus';
 
 import dynamic from 'next/dynamic';
 const LatexRenderer = dynamic(() => import('../../components/LatexRenderer'), { ssr: false });
 import TestManager from './TestManager';
 import TestMappingPanel from './TestMappingPanel';
-import BitsatBlueprintPanel from './BitsatBlueprintPanel';
-import BitsatSubtopicManager from './BitsatSubtopicManager';
 import QuestionMappingModal, { normalizeDifficulty } from './QuestionMappingModal';
 import { normalizeQuestion } from '../../lib/questionFormatter';
 import AdminReportedQuestions from '../../components/AdminReportedQuestions';
@@ -676,7 +671,7 @@ export default function AdminPanel() {
             }
         }
     }, []);
-    const [selectedExam, setSelectedExam] = useState('neet');
+    const [selectedExam, setSelectedExam] = useState('olympiad');
     const [selectedTestType, setSelectedTestType] = useState('ALL');
     const [selectedSubject, setSelectedSubject] = useState('ALL');
     const [selectedChapterFilter, setSelectedChapterFilter] = useState('ALL');
@@ -753,11 +748,7 @@ export default function AdminPanel() {
         optionDImage: ''
     });
 
-    const availableTests = [
-        ...neetTests,
-        ...jeeMainsTests,
-        ...bitsatTests
-    ].filter(t => t.category === selectedExam);
+    const availableTests = olympiadTests;
 
     const filteredTests = availableTests.filter(t => {
         if (selectedTestType !== 'ALL' && t.type !== selectedTestType) return false;
@@ -766,13 +757,11 @@ export default function AdminPanel() {
         return true;
     });
 
-    // Derive available subjects from the currently-visible test type
+    // Derive available subjects from Olympiad
     const subjectsByExam = {
-        neet: ['Physics', 'Chemistry', 'Botany', 'Zoology'],
-        'jee-mains': ['Physics', 'Chemistry', 'Mathematics'],
-        bitsat: ['Physics', 'Chemistry', 'Mathematics', 'Biology', 'English Proficiency', 'Logical Reasoning'],
+        olympiad: ['Mathematics', 'Science', 'English'],
     };
-    const availableSubjects = subjectsByExam[selectedExam] || [];
+    const availableSubjects = subjectsByExam[selectedExam] || ['Mathematics', 'Science', 'English'];
 
     // Admin authentication check
     useEffect(() => {
@@ -1848,18 +1837,6 @@ export default function AdminPanel() {
                         <span>🗺️</span> Test Mapping
                     </button>
                     <button 
-                        className={`${styles.tab} ${activeTab === 'blueprint' ? styles.activeTab : ''}`}
-                        onClick={() => setActiveTab('blueprint')}
-                    >
-                        <span>🎯</span> BITSAT 24-Test Blueprint
-                    </button>
-                    <button 
-                        className={`${styles.tab} ${activeTab === 'subtopics' ? styles.activeTab : ''}`}
-                        onClick={() => setActiveTab('subtopics')}
-                    >
-                        <span>🔖</span> BITSAT Subtopic Manager
-                    </button>
-                    <button 
                         className={`${styles.tab} ${activeTab === 'reports' ? styles.activeTab : ''}`}
                         onClick={() => setActiveTab('reports')}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
@@ -1886,13 +1863,6 @@ export default function AdminPanel() {
                     >
                         <span>📋</span> Test Audit
                     </button>
-                    <button 
-                        className={`${styles.tab} ${activeTab === 'chapter-mapping-audit' ? styles.activeTab : ''}`}
-                        onClick={() => setActiveTab('chapter-mapping-audit')}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                    >
-                        <span>🗂️</span> Chapter Mapping Audit
-                    </button>
                 </div>
  
                 {activeTab === 'tests' && (
@@ -1904,36 +1874,18 @@ export default function AdminPanel() {
                             }}
                             className={styles.select}
                         >
-                            <option value="neet">NEET</option>
-                            <option value="jee-mains">JEE Mains</option>
-                            <option value="bitsat">BITSAT</option>
+                            <option value="olympiad">Olympiad (Classes 1–12)</option>
                         </select>
                     </div>
                 )}
 
                 {activeTab === 'audit' ? (
                     <AdminTestAudit />
-                ) : activeTab === 'chapter-mapping-audit' ? (
-                    <div style={{ marginTop: '20px' }}>
-                        <iframe
-                            src="/admin/chapter-mapping-audit"
-                            style={{ width: '100%', height: 'calc(100vh - 200px)', border: 'none', borderRadius: '12px' }}
-                            title="Chapter Mapping Audit"
-                        />
-                    </div>
                 ) : activeTab === 'reports' ? (
                     <AdminReportedQuestions onReportStatusChange={refreshReportBadge} />
-                ) : activeTab === 'subtopics' ? (
-                    <BitsatSubtopicManager />
-                ) : activeTab === 'blueprint' ? (
-                    <BitsatBlueprintPanel />
                 ) : activeTab === 'mapping' ? (
                     <TestMappingPanel
-                        allTests={[
-                            ...neetTests,
-                            ...jeeMainsTests,
-                            ...bitsatTests
-                        ]}
+                        allTests={olympiadTests}
                     />
                 ) : activeTab === 'tests' ? (
                     <TestManager 

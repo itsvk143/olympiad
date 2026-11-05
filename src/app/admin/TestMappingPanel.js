@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import JeeChemAuditModal from './JeeChemAuditModal';
+
 const LatexRenderer = dynamic(() => import('../../components/LatexRenderer'), { ssr: false });
 
 // ── Full static chapter map ─────────────────────────────────────────────────
@@ -1791,21 +1791,7 @@ export default function TestMappingPanel({ allTests }) {
                 </div>
             )}
 
-            {/* ── Topic / Chapter Audit Modal (NEET / JEE across all subjects) ── */}
-            <JeeChemAuditModal
-                isOpen={auditModalOpen}
-                onClose={() => setAuditModalOpen(false)}
-                testId={selectedTestId}
-                subject={
-                    (testSubjectFilter || '').toLowerCase().includes('botany') || (selectedTestId || '').toLowerCase().includes('botany') ? 'Botany' :
-                    ((testSubjectFilter || '').toLowerCase().includes('zoology') || (selectedTestId || '').toLowerCase().includes('zoology') ? 'Zoology' :
-                    ((testSubjectFilter || '').toLowerCase().includes('math') || (selectedTestId || '').toLowerCase().includes('math') ? 'Mathematics' :
-                    ((testSubjectFilter || '').toLowerCase().includes('physics') || (selectedTestId || '').toLowerCase().includes('physics') ? 'Physics' : 'Chemistry')))
-                }
-                auditType={testTypeFilter === 'CHAPTER' || (selectedTestId || '').includes('-CHAPTER-') ? 'CHAPTER' : 'TOPIC'}
-                initialTab={auditInitialTab}
-                onReplacementsApplied={() => fetchMappedQuestions()}
-            />
+
         </div>
     );
 }

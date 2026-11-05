@@ -32,30 +32,7 @@ export async function POST(request) {
         }
 
         const rawExamStr = String(rawExam).trim();
-        if (!rawExamStr) {
-            return Response.json({
-                error: 'Exam selection is required. Please select exactly ONE exam: NEET, JEE MAIN, or BITSAT.'
-            }, { status: 400 });
-        }
-
-        if (/advance/i.test(rawExamStr)) {
-            return Response.json({
-                error: 'JEE Advanced is not available as an exam option. Valid options are NEET, JEE MAIN, or BITSAT.'
-            }, { status: 400 });
-        }
-
-        if (/both|all|\+|&|\band\b/i.test(rawExamStr)) {
-            return Response.json({
-                error: 'Multiple exam options (e.g. Both/All) are not permitted. Select exactly ONE: NEET, JEE MAIN, or BITSAT.'
-            }, { status: 400 });
-        }
-
-        const canonicalExam = normalizeToCanonicalExam(rawExamStr);
-        if (!canonicalExam || !CANONICAL_EXAMS.includes(canonicalExam)) {
-            return Response.json({
-                error: 'Invalid exam selected. Allowed options are exactly: NEET, JEE_MAIN, or BITSAT.'
-            }, { status: 400 });
-        }
+        const canonicalExam = normalizeToCanonicalExam(rawExamStr) || 'OLYMPIAD';
 
         const client = await clientPromise;
         const db = client.db('testseries');

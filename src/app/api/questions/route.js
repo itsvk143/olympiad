@@ -9,59 +9,8 @@ import { balanceTestQuestions, toValidObjectId } from '@/lib/testQuestionBalance
 import { checkTestAccess } from '@/lib/authorization';
 import { getCanonicalChapter } from '@/lib/chapterMapping';
 
-const getFilePath = (testId) => {
-    let folderName = 'questions'; // Default fallback
-
-    if (!testId) {
-        folderName = 'questionsneet';
-    } else if (testId.startsWith('neet')) {
-        folderName = 'questionsneet';
-    } else if (testId.startsWith('jee-mains')) {
-        folderName = 'questionsjeem';
-    } else if (testId.startsWith('jee-advance')) {
-        folderName = 'questionsjeea';
-    } else if (testId.startsWith('board12')) {
-        folderName = 'questionsboard12';
-    }
-
-    const baseDir = path.join(process.cwd(), 'src/data', folderName);
-
-    // Default fallback if logic fails
-    if (!testId) return path.join(baseDir, 'mock.json');
-
-    if (testId.includes('MOCK')) return path.join(baseDir, 'mock.json');
-    if (testId.includes('PYQ')) return path.join(baseDir, 'pyq.json');
-
-    const subject = testId.toLowerCase().includes('physics') ? 'physics' :
-        testId.toLowerCase().includes('chemistry') ? 'chemistry' :
-            testId.toLowerCase().includes('biology') ? 'biology' :
-                testId.toLowerCase().includes('mathematics') ? 'mathematics' : null;
-
-    if (testId.includes('SUBJECT') && subject) {
-        return path.join(baseDir, `subject_${subject}.json`);
-    }
-
-    if (testId.includes('CHAPTER') && subject) {
-        return path.join(baseDir, `chapter_${subject}.json`);
-    }
-
-    if (testId.includes('SUBTOPIC') && subject) {
-        return path.join(baseDir, `subtopic_${subject}.json`);
-    }
-
-    // Fallback for any other case
-    return path.join(baseDir, 'mock.json');
-};
-
 async function getQuestionsFallback(testId) {
-    try {
-        const filePath = getFilePath(testId);
-        const data = await fs.readFile(filePath, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        // If file doesn't exist or is invalid, return empty object
-        return {};
-    }
+    return [];
 }
 
 // Ensure the local JSON/generator questions or questionBank questions are copied to DB on access
@@ -280,33 +229,14 @@ async function ensureDbHasTest(testId, db) {
         }
     } else {
         // Dynamically resolve real questions from central questionBank!
-        const rawSubject = staticTest?.subject || (testId.includes('Physics') ? 'Physics' : testId.includes('Chemistry') ? 'Chemistry' : testId.includes('Mathematics') ? 'Mathematics' : (testId.includes('English') ? 'English Proficiency' : (testId.includes('Reasoning') ? 'Logical Reasoning' : (testId.includes('Botany') ? 'Botany' : (testId.includes('Zoology') ? 'Zoology' : null)))));
-        const isBitsatSubtopic = testId.startsWith('bitsat') && testId.includes('SUBTOPIC');
-        const qCount = staticTest?.questionsCount || (isBitsatSubtopic ? 20 : (testId.includes('SUBTOPIC') ? 25 : (testId.includes('CHAPTER') ? 30 : (testId.includes('SUBJECT') ? 45 : 45))));
+        const rawSubject = staticTest?.subject || (testId.includes('math') ? 'Mathematics' : testId.includes('sci') ? 'Science' : testId.includes('eng') ? 'English' : 'Mathematics');
+        const qCount = staticTest?.questionsCount || 30;
 
         let query = {};
         if (rawSubject) query.subject = rawSubject;
+        if (staticTest?.classGrade) query.classGrade = String(staticTest.classGrade);
 
-        // BITSAT strictly enforces Single-Correct MCQs (no Assertion-Reason, no Numerical)
-        if (testId.startsWith('bitsat')) {
-            query.$nor = [
-                { questionType: { $regex: /assertion|ar|numerical/i } },
-                { type: { $regex: /assertion|ar|numerical/i } }
-            ];
-        }
-
-        const isNeet = testId.startsWith('neet');
-        // NEET strictly enforces Multiple Choice Questions with options (NO Numerical questions permitted)
-        if (isNeet) {
-            query.$nor = [
-                { questionType: { $regex: /numerical|numeric|integer/i } },
-                { type: { $regex: /numerical|numeric|integer/i } },
-                { options: { $size: 0 } },
-                { options: null },
-                { options: { $exists: false } }
-            ];
-            query['options.1'] = { $exists: true };
-        }
+        query['options.1'] = { $exists: true };
 
         if (testId.includes('SUBTOPIC') && (staticTest?.title || staticTest?.chapter)) {
             const subTitle = staticTest?.title || '';
@@ -419,9 +349,8 @@ async function ensureDbHasTest(testId, db) {
             } else {
                 matched = [...easyQs, ...hardQs];
             }
-        } else if (isBitsatSubtopic) {
-            // Balanced difficulty for BITSAT: for 20 Qs => 5 Easy, 11 Moderate, 4 Difficult
-            const easyTarget = Math.round(qCount * 0.25);
+        } else if (testId.toLowerCase().includes('olympiad')) {
+            const easyTarget = Math.round(qCount * 0.35);
             const hardTarget = Math.round(qCount * 0.20);
             const modTarget = qCount - easyTarget - hardTarget;
 

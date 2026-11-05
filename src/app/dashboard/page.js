@@ -294,8 +294,7 @@ export default function Dashboard() {
                 const subjectAgg = {};
                 data.forEach(r => {
                     if (r.subjectStats) {
-                        const isBitsat = (r.examType || r.testId || '').toLowerCase().includes('bitsat');
-                        const defaultPos = isBitsat ? 3 : 4;
+                        const defaultPos = r.marksPerQuestion || 1;
                         Object.entries(r.subjectStats).forEach(([subj, stat]) => {
                             if (!subjectAgg[subj]) subjectAgg[subj] = { subject: subj, score: 0, total: 0 };
                             const statScore = stat.score || 0;
@@ -336,11 +335,9 @@ export default function Dashboard() {
     if (!session) return null;
 
     const userCanonicalExam = normalizeToCanonicalExam(userProfile?.exam || userProfile?.examPreparingFor);
-    const activeExam = (session?.user?.isAdmin && adminPreviewExam)
-        ? adminPreviewExam
-        : (userCanonicalExam || 'NEET');
-    const assignedExamDisplay = getCanonicalExamDisplay(activeExam);
-    const assignedExamPath = canonicalToExamSlug(activeExam) || 'neet';
+    const activeExam = 'OLYMPIAD';
+    const assignedExamDisplay = 'Olympiad';
+    const assignedExamPath = 'olympiad';
 
     const availableCities = editForm.state ? (STATE_CITIES[editForm.state] || []) : [];
 
@@ -1071,11 +1068,8 @@ export default function Dashboard() {
                     <div
                         className={styles.statCard}
                         onClick={() => {
-                            if (stats.bestTestId && stats.bestTestExam) {
-                                let examPath = stats.bestTestExam.toLowerCase();
-                                if (examPath.includes('jee')) examPath = 'jee-mains';
-                                else if (examPath.includes('bitsat')) examPath = 'bitsat';
-                                else examPath = 'neet';
+                            if (stats.bestTestId) {
+                                let examPath = 'olympiad';
                                 router.push(`/test-series/${examPath}/${stats.bestTestId}`);
                             }
                         }}
@@ -1214,10 +1208,7 @@ export default function Dashboard() {
                                             key={result._id || index}
                                             className={styles.historyItem}
                                             onClick={() => {
-                                                let examPath = (result.examType || '').toLowerCase();
-                                                if (examPath.includes('jee')) examPath = 'jee-mains';
-                                                else if (examPath.includes('bitsat')) examPath = 'bitsat';
-                                                else examPath = 'neet';
+                                                let examPath = 'olympiad';
                                                 router.push(`/test-series/${examPath}/${result.testId}`);
                                             }}
                                             style={{ cursor: 'pointer' }}

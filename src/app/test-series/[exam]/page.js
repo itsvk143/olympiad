@@ -3,62 +3,28 @@ import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Navbar from '../../../components/Navbar';
 import TestCard from '../../../components/TestCard';
-import { neetTests, generateNeetTests } from '../../../data/exams/neet';
-import { jeeMainsTests, generateJeeMainsTests } from '../../../data/exams/jeeMains';
-import { bitsatTests } from '../../../data/exams/bitsat';
+import { olympiadTests } from '../../../data/exams/olympiad';
+import { OLYMPIAD_CLASSES, OLYMPIAD_SUBJECTS } from '../../../data/exams/olympiadSyllabus';
 import styles from './page.module.css';
-import { Suspense, use, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Radio, FileText, Layers, LibraryBig, BookOpen, BookText, Search } from 'lucide-react';
-import {
-    normalizeToCanonicalExam,
-    getCanonicalExamDisplay,
-    examSlugToCanonical,
-    canonicalToExamSlug
-} from '@/lib/authorization';
+import { Suspense, use, useEffect, useState, useMemo } from 'react';
+import { Search, BookOpen, Layers, Award, Sparkles, Filter } from 'lucide-react';
 
 function ExamPageContent({ params }) {
     const unwrappedParams = use(params);
-    const { exam } = unwrappedParams;
-    const isBoardPage = exam === 'board-10' || exam === 'board-12';
+    const { exam = 'olympiad' } = unwrappedParams;
 
     const searchParams = useSearchParams();
-    const initialTab = searchParams.get('tab');
-    // Fix #6 — get session once at parent level, pass to TestCard as prop
+    const initialClass = searchParams.get('class');
+    const initialSubject = searchParams.get('subject');
+
     const { data: session } = useSession();
 
-    const [tests, setTests] = useState([]);
-    const [loadingTests, setLoadingTests] = useState(true);
-    const [userProfile, setUserProfile] = useState(null);
-    const [userStudentClass, setUserStudentClass] = useState(null);
-
-    // Fetch user profile with background revalidation
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                // Set state from cache for instant UI rendering
-                const cached = sessionStorage.getItem('userProfile');
-                if (cached) {
-                    const data = JSON.parse(cached);
-                    setUserProfile(data);
-                    setUserStudentClass(data.studentClass || null);
-                }
-                // Background revalidation to keep admin permissions and class in sync
-                const res = await fetch('/api/user/profile');
-                if (res.ok) {
-                    const data = await res.json();
-                    sessionStorage.setItem('userProfile', JSON.stringify(data));
-                    setUserProfile(data);
-                    setUserStudentClass(data.studentClass || null);
-                }
-            } catch {}
-        };
-        fetchProfile();
-    }, []);
-
+    const [selectedClass, setSelectedClass] = useState(initialClass ? Number(initialClass) : 5);
+    const [selectedSubject, setSelectedSubject] = useState(initialSubject ? initialSubject.toLowerCase() : 'all');
+    const [searchQuery, setSearchQuery] = useState('');
     const [completedTestIds, setCompletedTestIds] = useState(new Set());
 
-    // Fetch user completed test IDs with instant cache + background revalidation
+    // Fetch user completed test IDs
     useEffect(() => {
         const userEmail = session?.user?.email?.toLowerCase();
         if (!userEmail) {
@@ -66,31 +32,14 @@ function ExamPageContent({ params }) {
             return;
         }
 
-        const cacheKey = `completed_tests_${userEmail}`;
-        try {
-            const cached = sessionStorage.getItem(cacheKey);
-            if (cached) {
-                const parsed = JSON.parse(cached);
-                if (Array.isArray(parsed)) {
-                    setCompletedTestIds(new Set(parsed.map(id => (id || '').trim().toLowerCase())));
-                }
-            }
-        } catch {}
-
-        let isMounted = true;
         const fetchCompleted = async () => {
             try {
                 const res = await fetch('/api/test-results?lean=1');
                 if (res.ok) {
                     const data = await res.json();
-                    if (Array.isArray(data) && isMounted) {
-                        const ids = data
-                            .map(r => (r.testId || '').trim().toLowerCase())
-                            .filter(Boolean);
+                    if (Array.isArray(data)) {
+                        const ids = data.map(r => (r.testId || '').trim().toLowerCase()).filter(Boolean);
                         setCompletedTestIds(new Set(ids));
-                        try {
-                            sessionStorage.setItem(cacheKey, JSON.stringify(ids));
-                        } catch {}
                     }
                 }
             } catch (err) {
@@ -99,1040 +48,199 @@ function ExamPageContent({ params }) {
         };
 
         fetchCompleted();
-        return () => { isMounted = false; };
     }, [session?.user?.email]);
 
-    // Compute which classGrades this student is allowed to see
-    // Class 11       → only '11'
-    // Class 12 / 12 Passed → '11', '12', 'All Test'
-    // Class 9/10 / not set → everything ('All Test', '11', '12')
-    const allowedGrades = (() => {
-        if (userStudentClass === 'Class 11') return new Set(['11', 'All Test']);
-        if (userStudentClass === 'Class 12' || userStudentClass === '12 Passed') return new Set(['11', '12', 'All Test']);
-        return null; // no restriction
-    })();
+    // Filter tests by class, subject, and search query
+    const filteredTests = useMemo(() => {
+        return olympiadTests.filter(test => {
+            if (Number(test.classGrade) !== Number(selectedClass)) return false;
+            if (selectedSubject !== 'all' && test.subjectSlug !== selectedSubject) return false;
+            if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase();
+                const matchesTitle = test.title.toLowerCase().includes(q);
+                const matchesSubject = test.subject.toLowerCase().includes(q);
+                const matchesDesc = test.description.toLowerCase().includes(q);
+                if (!matchesTitle && !matchesSubject && !matchesDesc) return false;
+            }
+            return true;
+        });
+    }, [selectedClass, selectedSubject, searchQuery]);
 
-    useEffect(() => {
-        const now = new Date();
-        const sessionYr = now.getMonth() < 5 ? now.getFullYear() - 1 : now.getFullYear();
-        let baseTests = [];
-        if (exam === 'neet') baseTests = typeof generateNeetTests === 'function' ? generateNeetTests(sessionYr) : neetTests;
-        else if (exam === 'jee-mains') baseTests = typeof generateJeeMainsTests === 'function' ? generateJeeMainsTests(sessionYr) : jeeMainsTests;
-        else if (exam === 'bitsat') baseTests = bitsatTests;
-        
-        // Fetch custom modifications
-        const fetchCustomAndMerge = async () => {
-             try {
-                const res = await fetch('/api/tests');
-                const customData = await res.json();
-                
-                // Merge base tests with overrides
-                const mergedTests = baseTests.map(test => {
-                    return customData[test.id] ? { ...test, ...customData[test.id] } : test;
-                });
-                
-                // Append any purely custom tests
-                const purelyCustomTests = Object.values(customData).filter(ct => ct.category === exam && !baseTests.find(st => st.id === ct.id));
-                
-                setTests([...mergedTests, ...purelyCustomTests]);
-             } catch (err) {
-                console.error('Failed to merge custom tests', err);
-                setTests(baseTests); // fallback
-             } finally {
-                setLoadingTests(false);
-             }
-        };
-
-        fetchCustomAndMerge();
-    }, [exam]);
-
-    // Tab-based navigation
-    const [activeTab, setActiveTab] = useState(initialTab || 'mock');
-    const [activeClass, setActiveClass] = useState('All Test');
-    const [activeSubject, setActiveSubject] = useState('All');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [bitsatMode, setBitsatMode] = useState('mathematics'); // 'mathematics' | 'biology'
-
-    useEffect(() => {
-        if (initialTab) {
-            setActiveTab(initialTab);
-        }
-    }, [initialTab]);
-
-    const EXCLUDED_NEET_CHAPTERS = new Set([
-        'digestion and absorption',
-        'transport in plants',
-        'reproduction in organisms',
-        'mineral nutrition',
-        'environmental issues'
-    ]);
-
-    const activeTests = tests.filter(t => {
-        if (exam === 'neet') {
-            if (t.isExcluded || t.syllabusStatus === 'EXCLUDED' || t.isActive === false) return false;
-            const ch = (t.chapter || t.title || '').toLowerCase().trim();
-            if (EXCLUDED_NEET_CHAPTERS.has(ch)) return false;
-        }
-        return true;
-    });
-
-    const mockTests = activeTests.filter(t => t.type === 'MOCK');
-    const partTests = activeTests.filter(t => t.type === 'PART');
-    const pyqTests = activeTests.filter(t => t.type === 'PYQ');
-    const liveTests = activeTests.filter(t => t.type === 'LIVE');
-    const subjectTests = activeTests.filter(t => t.type === 'SUBJECT');
-    const chapterTests = activeTests.filter(t => t.type === 'CHAPTER');
-    const subtopicTests = activeTests.filter(t => t.type === 'SUBTOPIC');
-    const [expandedSubjects, setExpandedSubjects] = useState({});
-    const [expandedChapterSubjects, setExpandedChapterSubjects] = useState({});
-    const [expandedChapters, setExpandedChapters] = useState({});
-    const [expandedSubtopics, setExpandedSubtopics] = useState({});
-    const [expandedSubtopicChapters, setExpandedSubtopicChapters] = useState({});
-    const [liveSections, setLiveSections] = useState({ upcoming: false, ended: false });
-
-    // Ensure all accordions are collapsed by default when switching tabs or exams
-    useEffect(() => {
-        setExpandedSubjects({});
-        setExpandedChapterSubjects({});
-        setExpandedChapters({});
-        setExpandedSubtopics({});
-        setExpandedSubtopicChapters({});
-    }, [activeTab, exam]);
-
-    // Grouping Live Tests by Month/Status
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    const isCurrentMonth = (dateStr) => {
-        if (!dateStr) return false;
-        const d = new Date(dateStr);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    };
-
-    // Filtering logic for active class AND allowed grades
-    const filterByClass = (testList) => {
-        let filtered = testList;
-        // Apply class restriction based on student's class
-        if (allowedGrades) {
-            filtered = filtered.filter(t => allowedGrades.has(t.classGrade || 'All Test'));
-        }
-        // Apply user-selected class toggle (only if not restricted to a single grade)
-        if (activeClass !== 'All Test') {
-            filtered = filtered.filter(t => t.classGrade === activeClass || t.classGrade === 'All Test' || !t.classGrade);
-        }
-        return filtered;
-    };
-
-    const mathMockTests = mockTests.filter(t => t.subjectMode === 'mathematics' || (!t.subjectMode && !t.id?.includes('BIO')));
-    const bioMockTests = mockTests.filter(t => t.subjectMode === 'biology' || t.id?.includes('BIO'));
-    const currentMockTests = filterByClass(
-        exam === 'bitsat'
-            ? (bitsatMode === 'biology' ? bioMockTests : mathMockTests)
-            : mockTests
-    );
-    const currentPartTests = filterByClass(partTests);
-    const currentPyqTests = filterByClass(pyqTests);
-    const currentLiveTests = filterByClass(liveTests);
-    const currentSubjectTests = filterByClass(subjectTests);
-    const currentChapterTests = filterByClass(chapterTests);
-    const currentSubtopicTests = filterByClass(subtopicTests);
-
-    const monthLive = currentLiveTests.filter(t => isCurrentMonth(t.liveStart) || !t.liveStart)
-        .sort((a, b) => new Date(a.liveStart || 0) - new Date(b.liveStart || 0));
-
-    const otherEndedLive = currentLiveTests.filter(t => t.liveEnd && !isCurrentMonth(t.liveStart) && new Date(t.liveEnd) < now)
-        .sort((a, b) => new Date(b.liveEnd) - new Date(a.liveEnd));
-
-    const otherUpcomingLive = currentLiveTests.filter(t => t.liveStart && !isCurrentMonth(t.liveStart) && new Date(t.liveStart) > now)
-        .sort((a, b) => new Date(a.liveStart) - new Date(b.liveStart));
-
-    const toggleSubjectHeaderStyle = {
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '1rem',
-        padding: '0.5rem 0',
-        borderBottom: '1px solid rgba(255,255,255,0.1)'
-    };
-
-    const isClass9 = exam === 'class-9';
-    const isClass10 = exam === 'class-10';
-    const isBoard10 = exam === 'board-10';
-    const isBoard12 = exam === 'board-12';
-    const isClassPage = isClass9 || isClass10 || isBoard10 || isBoard12;
-    
-    useEffect(() => {
-        if (isClassPage && (!initialTab || ['mock', 'pyq', 'part', 'subject', 'chapter', 'live'].includes(initialTab))) {
-            setActiveTab(isBoard10 || isBoard12 ? (isBoard12 ? 'physics' : 'maths') : 'ntse');
-        } else if (initialTab) {
-            setActiveTab(initialTab);
-        }
-    }, [initialTab, isClassPage, isBoard10, isBoard12]);
-    
-    const class9Tabs = [
-        { id: 'ntse', label: 'NTSE', icon: '🏆' },
-        { id: 'nso', label: 'NSO', icon: '🔬' },
-        { id: 'imo', label: 'IMO', icon: '🧮' },
-        { id: 'nstse', label: 'NSTSE', icon: '🌟' }
+    const subjectsList = [
+        { id: 'all', name: 'All Subjects', icon: '🌟' },
+        { id: 'mathematics', name: 'Mathematics', icon: '📐' },
+        { id: 'science', name: 'Science', icon: '🔬' },
+        { id: 'english', name: 'English', icon: '📚' }
     ];
-    
-    const class10Tabs = [
-        { id: 'ntse', label: 'NTSE', icon: '🏆' },
-        { id: 'nso', label: 'NSO', icon: '🔬' },
-        { id: 'imo', label: 'IMO', icon: '🧮' },
-        { id: 'nstse', label: 'NSTSE', icon: '🌟' }
-    ];
-
-    const board10Tabs = [
-        { id: 'maths', label: 'Maths', icon: '🧮' },
-        { id: 'science', label: 'Science', icon: '🔬' },
-        { id: 'social', label: 'Social Science', icon: '🌍' },
-        { id: 'english', label: 'English', icon: '📚' },
-        { id: 'hindi', label: 'Hindi', icon: '📖' },
-    ];
-
-    const board12Tabs = [
-        { id: 'physics', label: 'Physics', icon: '⚡' },
-        { id: 'chemistry', label: 'Chemistry', icon: '🧪' },
-        { id: 'maths', label: 'Maths', icon: '🧮' },
-        { id: 'biology', label: 'Biology', icon: '🌿' },
-        { id: 'english', label: 'English', icon: '📚' }
-    ];
-    
-    const currentTabs = isClass9 ? class9Tabs : isClass10 ? class10Tabs : isBoard10 ? board10Tabs : isBoard12 ? board12Tabs : [];
-
-    const studentCanonical = normalizeToCanonicalExam(userProfile?.exam || userProfile?.examPreparingFor);
-    const pageCanonical = examSlugToCanonical(exam);
-    const isExamMismatch = !!session && !session?.user?.isAdmin && !!studentCanonical && !!pageCanonical && studentCanonical !== pageCanonical;
-
-    if (isExamMismatch) {
-        const studentExamLabel = getCanonicalExamDisplay(studentCanonical);
-        const pageExamLabel = getCanonicalExamDisplay(pageCanonical);
-        const enrolledSlug = canonicalToExamSlug(studentCanonical);
-
-        return (
-            <div className={styles.container}>
-                <Navbar />
-                <div style={{
-                    maxWidth: '720px',
-                    margin: '60px auto',
-                    padding: '44px 28px',
-                    textAlign: 'center',
-                    background: 'rgba(239, 68, 68, 0.08)',
-                    border: '1px solid rgba(239, 68, 68, 0.35)',
-                    borderRadius: '20px',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
-                }}>
-                    <div style={{ fontSize: '3.5rem', marginBottom: '16px' }}>🚫</div>
-                    <h1 style={{ color: '#ef4444', fontSize: '2rem', marginBottom: '12px', fontWeight: '800', letterSpacing: '0.5px' }}>
-                        ACCESS DENIED
-                    </h1>
-                    <p style={{ color: '#f8fafc', fontSize: '1.15rem', marginBottom: '10px', lineHeight: '1.6' }}>
-                        Your account is enrolled exclusively for <strong style={{ color: '#c4b5fd' }}>{studentExamLabel}</strong>.
-                    </p>
-                    <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '32px', lineHeight: '1.5' }}>
-                        Under single-exam authorization, you cannot access {pageExamLabel} test papers or content.
-                    </p>
-                    <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                        <Link
-                            href={`/test-series/${enrolledSlug}`}
-                            style={{
-                                background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-                                color: 'white',
-                                padding: '12px 28px',
-                                borderRadius: '12px',
-                                fontWeight: '700',
-                                textDecoration: 'none',
-                                fontSize: '0.95rem',
-                                boxShadow: '0 8px 20px rgba(124, 58, 237, 0.3)'
-                            }}
-                        >
-                            Go to My {studentExamLabel} Test Series &rarr;
-                        </Link>
-                        <Link
-                            href="/dashboard"
-                            style={{
-                                background: 'rgba(255,255,255,0.08)',
-                                color: '#e2e8f0',
-                                border: '1px solid rgba(255,255,255,0.15)',
-                                padding: '12px 24px',
-                                borderRadius: '12px',
-                                fontWeight: '600',
-                                textDecoration: 'none',
-                                fontSize: '0.95rem'
-                            }}
-                        >
-                            Return to Dashboard
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className={styles.container}>
             <Navbar />
-            <div className={styles.header}>
-                <h1 className={styles.title}>{exam?.replace('-', ' ').toUpperCase()} Series</h1>
-                <p className={styles.subtitle}>Practice with curated full tests and PYQ.</p>
-            </div>
 
-            {/* Horizontal Tab Navigation */}
-            <div className={styles.tabNavWrapper}>
-                <div className={styles.tabContainer}>
-                    {!isClassPage ? (
-                        <>
-                            {currentLiveTests.length > 0 && (
-                                <button
-                                    className={`${styles.tab} ${activeTab === 'live' ? styles.tabActive : ''}`}
-                                    onClick={() => setActiveTab('live')}
-                                >
-                                    <span className={styles.tabIcon} style={{color: '#ef4444'}}><Radio size={18} /></span>
-                                    <span className={styles.tabText}>Live Tests</span>
-                                    <span className={styles.tabCount}>({currentLiveTests.length})</span>
-                                </button>
-                            )}
-                            <button
-                                className={`${styles.tab} ${activeTab === 'mock' ? styles.tabActive : ''}`}
-                                onClick={() => setActiveTab('mock')}
-                            >
-                                <span className={styles.tabIcon} style={{color: 'var(--primary)'}}><FileText size={18} /></span>
-                                <span className={styles.tabText}>Full Tests</span>
-                                <span className={styles.tabCount}>
-                                    ({exam === 'bitsat' ? (bitsatMode === 'biology' ? bioMockTests.length : mathMockTests.length) : mockTests.length})
-                                </span>
-                            </button>
-                            {partTests.length > 0 && (
-                                <button
-                                    className={`${styles.tab} ${activeTab === 'part' ? styles.tabActive : ''}`}
-                                    onClick={() => setActiveTab('part')}
-                                >
-                                    <span className={styles.tabIcon} style={{color: '#06b6d4'}}><Layers size={18} /></span>
-                                    <span className={styles.tabText}>Part Tests</span>
-                                    <span className={styles.tabCount}>({partTests.length})</span>
-                                </button>
-                            )}
-                            {/* 
-                            <button
-                                className={`${styles.tab} ${activeTab === 'pyq' ? styles.tabActive : ''}`}
-                                onClick={() => setActiveTab('pyq')}
-                            >
-                                <span className={styles.tabIcon} style={{color: 'var(--accent)'}}><LibraryBig size={18} /></span>
-                                <span className={styles.tabText}>PYQ</span>
-                                <span className={styles.tabCount}>({pyqTests.length})</span>
-                            </button>
-                            */}
-                            <button
-                                className={`${styles.tab} ${activeTab === 'subject' ? styles.tabActive : ''}`}
-                                onClick={() => setActiveTab('subject')}
-                            >
-                                <span className={styles.tabIcon} style={{color: '#8b5cf6'}}><BookOpen size={18} /></span>
-                                <span className={styles.tabText}>Subjectwise Tests</span>
-                                <span className={styles.tabCount}>({subjectTests.length})</span>
-                            </button>
-                            <button
-                                className={`${styles.tab} ${activeTab === 'chapter' ? styles.tabActive : ''}`}
-                                onClick={() => setActiveTab('chapter')}
-                            >
-                                <span className={styles.tabIcon} style={{color: '#f59e0b'}}><BookText size={18} /></span>
-                                <span className={styles.tabText}>Chapterwise Tests</span>
-                                <span className={styles.tabCount}>({chapterTests.length})</span>
-                            </button>
-                            <button
-                                className={`${styles.tab} ${activeTab === 'subtopic' ? styles.tabActive : ''}`}
-                                onClick={() => setActiveTab('subtopic')}
-                            >
-                                <span className={styles.tabIcon} style={{color: '#10b981'}}><Search size={18} /></span>
-                                <span className={styles.tabText}>Subtopic Tests</span>
-                                <span className={styles.tabCount}>({subtopicTests.length})</span>
-                            </button>
-                        </>
-                    ) : (
-                        currentTabs.map(tab => (
-                            <button
-                                key={tab.id}
-                                className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
-                                onClick={() => setActiveTab(tab.id)}
-                            >
-                                <span className={styles.tabIcon}>{tab.icon}</span>
-                                <span className={styles.tabText}>{tab.label}</span>
-                                <span className={styles.tabCount}>
-                                    ({tests.filter(t => t.subject?.toUpperCase() === tab.label.toUpperCase() || t.title?.toUpperCase().includes(tab.label.toUpperCase())).length})
-                                </span>
-                            </button>
-                        ))
-                    )}
+            <div className={styles.header}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <span style={{
+                        padding: '0.3rem 0.9rem',
+                        borderRadius: '9999px',
+                        background: 'rgba(56, 189, 248, 0.15)',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        color: '#38bdf8',
+                        fontSize: '0.85rem',
+                        fontWeight: '700'
+                    }}>
+                        🏆 CLASS {selectedClass} OLYMPIAD SERIES
+                    </span>
+                </div>
+                <h1 className={styles.title}>
+                    Olympiad Examination Portal — Class {selectedClass}
+                </h1>
+                <p className={styles.subtitle}>
+                    Official-pattern 10-paper series with KaTeX LaTeX formulas, visual diagrams, and instant performance analysis.
+                </p>
+
+                {/* Class Navigation Pills */}
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '0.4rem',
+                    justifyContent: 'center',
+                    marginTop: '1.5rem',
+                    marginBottom: '1rem'
+                }}>
+                    {OLYMPIAD_CLASSES.map(cls => (
+                        <button
+                            key={cls}
+                            onClick={() => setSelectedClass(cls)}
+                            style={{
+                                padding: '0.45rem 0.9rem',
+                                borderRadius: '8px',
+                                border: selectedClass === cls ? '2px solid #38bdf8' : '1px solid rgba(148, 163, 184, 0.2)',
+                                background: selectedClass === cls ? 'rgba(56, 189, 248, 0.25)' : 'rgba(15, 23, 42, 0.6)',
+                                color: selectedClass === cls ? '#ffffff' : '#94a3b8',
+                                fontWeight: selectedClass === cls ? '700' : '500',
+                                fontSize: '0.875rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                            }}
+                        >
+                            Class {cls}
+                        </button>
+                    ))}
                 </div>
             </div>
 
-
-            <div className={styles.content}>
-                {/* Class Toggle - Don't show for Live tests tab, Mock, Part, PYQ, or Subtopic */}
-                {!isClassPage && !['mock', 'part', 'pyq', 'subtopic'].includes(activeTab) && (
-                    <div className={styles.classToggleContainer}>
-                        {/* Show All Test button only if student sees multiple grades */}
-                        {(!allowedGrades || allowedGrades.size > 1) && (
-                            <button 
-                                className={`${styles.classToggleBtn} ${activeClass === 'All Test' ? styles.classToggleBtnActive : ''}`}
-                                onClick={() => setActiveClass('All Test')}
-                            >
-                                All Test
-                            </button>
-                        )}
-                        {/* Show Class 11 button */}
-                        {(!allowedGrades || allowedGrades.has('11')) && (
-                            <button 
-                                className={`${styles.classToggleBtn} ${activeClass === '11' ? styles.classToggleBtnActive : ''}`}
-                                onClick={() => setActiveClass('11')}
-                            >
-                                Class 11
-                            </button>
-                        )}
-                        {/* Show Class 12 button only if student is Class 12 or above */}
-                        {(!allowedGrades || allowedGrades.has('12')) && (
-                            <button 
-                                className={`${styles.classToggleBtn} ${activeClass === '12' ? styles.classToggleBtnActive : ''}`}
-                                onClick={() => setActiveClass('12')}
-                            >
-                                Class 12
-                            </button>
-                        )}
-                    </div>
-                )}
-
-                {loadingTests && <div style={{ textAlign: 'center', padding: '2rem' }}>Loading exams...</div>}
-
-                {/* Class Specific Tab Content */}
-                {isClassPage && !loadingTests && (
-                    <div className={isBoardPage ? styles.list : styles.grid}>
-                        {(() => {
-                            const currentTabLabel = currentTabs.find(t => t.id === activeTab)?.label.toUpperCase();
-                            const specificTests = filterByClass(tests).filter(t => 
-                                t.subject?.toUpperCase() === currentTabLabel || 
-                                t.title?.toUpperCase().includes(currentTabLabel || '')
-                            );
-                            
-                            return specificTests.length > 0 ? (
-                                specificTests.map(test => (
-                                    <TestCard key={test.id} test={test} exam={exam} session={session} layout={isBoardPage ? "list" : "card"} isCompleted={completedTestIds.has((test.id || '').trim().toLowerCase())} />
-                                ))
-                            ) : (
-                                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                                    No {currentTabLabel} tests available yet.
-                                </div>
-                            );
-                        })()}
-                    </div>
-                )}
-                
-                {/* Standard Tab Content (Non-Class Pages) */}
-                {!isClassPage && !loadingTests && activeTab === 'live' && (
-                    <div style={{ marginTop: '1.5rem' }}>
-                        {/* Ended Section (Other Months) */}
-                        {otherEndedLive.length > 0 && (
-                            <div style={{ marginBottom: '2rem' }}>
-                                <div 
-                                    className="glass-panel"
-                                    onClick={() => setLiveSections(prev => ({ ...prev, ended: !prev.ended }))}
-                                    style={{
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        padding: '1rem 1.25rem',
-                                        borderRadius: '12px',
-                                        borderLeft: '4px solid #ef4444',
-                                        background: 'rgba(239, 68, 68, 0.05)'
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <div className="roadmap-dot" style={{ background: '#ef4444', boxShadow: '0 0 10px #ef4444' }} />
-                                        <h3 style={{ fontSize: '1.2rem', fontWeight: '600', margin: 0 }}>
-                                            Ended Live Tests 
-                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '0.5rem', fontWeight: '400' }}>
-                                                ({otherEndedLive.length} tests)
-                                            </span>
-                                        </h3>
-                                    </div>
-                                    <span style={{ fontSize: '0.8rem', opacity: 0.5 }}>{liveSections.ended ? '▲' : '▼'}</span>
-                                </div>
-                                {liveSections.ended && (
-                                    <div className={isBoardPage ? styles.list : styles.grid} style={{ marginTop: '1.5rem', paddingLeft: '1rem' }}>
-                                        {otherEndedLive.map(test => (
-                                            <TestCard key={test.id} test={test} exam={exam} session={session} layout={isBoardPage ? "list" : "card"} isCompleted={completedTestIds.has((test.id || '').trim().toLowerCase())} />
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Current Month Section */}
-                        <div style={{ marginBottom: '2rem' }}>
-                            <div 
-                                className="glass-panel"
+            {/* Filter and Search Bar */}
+            <div className={styles.controls} style={{ maxWidth: '1200px', margin: '0 auto 2rem auto', padding: '0 1rem' }}>
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    background: 'rgba(30, 41, 59, 0.6)',
+                    padding: '1rem 1.25rem',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(148, 163, 184, 0.15)'
+                }}>
+                    {/* Subject Tabs */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {subjectsList.map(s => (
+                            <button
+                                key={s.id}
+                                onClick={() => setSelectedSubject(s.id)}
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    padding: '1rem 1.25rem',
-                                    borderRadius: '12px',
-                                    borderLeft: '4px solid var(--success)',
-                                    background: 'rgba(34, 197, 94, 0.05)',
-                                    marginBottom: '1.5rem'
+                                    gap: '0.4rem',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '8px',
+                                    border: selectedSubject === s.id ? '1px solid #38bdf8' : '1px solid transparent',
+                                    background: selectedSubject === s.id ? 'rgba(56, 189, 248, 0.2)' : 'rgba(15, 23, 42, 0.4)',
+                                    color: selectedSubject === s.id ? '#ffffff' : '#cbd5e1',
+                                    fontWeight: selectedSubject === s.id ? '700' : '500',
+                                    fontSize: '0.9rem',
+                                    cursor: 'pointer'
                                 }}
                             >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                    <div className="roadmap-dot" style={{ background: 'var(--success)', boxShadow: '0 0 10px var(--success)' }} />
-                                    <h3 style={{ fontSize: '1.2rem', fontWeight: '700', margin: 0 }}>
-                                        Tests of {now.toLocaleString('default', { month: 'long' })} {currentYear}
-                                        <span style={{ fontSize: '0.8rem', color: 'var(--success)', marginLeft: '0.75rem', fontWeight: '500' }}>
-                                            • ACTIVE PHASE
-                                        </span>
-                                    </h3>
-                                </div>
-                            </div>
-                            <div className={isBoardPage ? styles.list : styles.grid}>
-                                {monthLive.length > 0 ? (
-                                    monthLive.map(test => (
-                                        <TestCard key={test.id} test={test} exam={exam} session={session} layout={isBoardPage ? "list" : "card"} isCompleted={completedTestIds.has((test.id || '').trim().toLowerCase())} />
-                                    ))
-                                ) : (
-                                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
-                                        No live tests scheduled for this month.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Upcoming Section (Other Months) */}
-                        {otherUpcomingLive.length > 0 && (
-                            <div style={{ marginBottom: '2.5rem' }}>
-                                <div 
-                                    className="glass-panel"
-                                    onClick={() => setLiveSections(prev => ({ ...prev, upcoming: !prev.upcoming }))}
-                                    style={{
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        padding: '1rem 1.25rem',
-                                        borderRadius: '12px',
-                                        borderLeft: '4px solid #3b82f6',
-                                        background: 'rgba(59, 130, 246, 0.05)'
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <div className="roadmap-dot" style={{ background: '#3b82f6', boxShadow: '0 0 10px #3b82f6' }} />
-                                        <h3 style={{ fontSize: '1.2rem', fontWeight: '600', margin: 0 }}>
-                                            Upcoming Live Tests 
-                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '0.5rem', fontWeight: '400' }}>
-                                                ({otherUpcomingLive.length} tests)
-                                            </span>
-                                        </h3>
-                                    </div>
-                                    <span style={{ fontSize: '0.8rem', opacity: 0.5 }}>{liveSections.upcoming ? '▲' : '▼'}</span>
-                                </div>
-                                {liveSections.upcoming && (
-                                    <div className={isBoardPage ? styles.list : styles.grid} style={{ marginTop: '1.5rem', paddingLeft: '1rem' }}>
-                                        {otherUpcomingLive.map(test => (
-                                            <TestCard key={test.id} test={test} exam={exam} session={session} layout={isBoardPage ? "list" : "card"} isCompleted={completedTestIds.has((test.id || '').trim().toLowerCase())} />
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                                <span>{s.icon}</span>
+                                <span>{s.name}</span>
+                            </button>
+                        ))}
                     </div>
-                )}
 
-                {/* Mock Tests Tab Content */}
-                {activeTab === 'mock' && (
-                    <>
-                        {exam === 'bitsat' && (
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                marginBottom: '1.75rem'
-                            }}>
-                                <div style={{
-                                    display: 'inline-flex',
-                                    background: 'rgba(255, 255, 255, 0.04)',
-                                    padding: '4px',
-                                    borderRadius: '10px',
-                                    border: '1px solid rgba(255, 255, 255, 0.08)'
-                                }}>
-                                    <button
-                                        type="button"
-                                        onClick={() => setBitsatMode('mathematics')}
-                                        style={{
-                                            padding: '6px 18px',
-                                            borderRadius: '7px',
-                                            border: 'none',
-                                            background: bitsatMode === 'mathematics' ? 'var(--primary)' : 'transparent',
-                                            color: bitsatMode === 'mathematics' ? '#ffffff' : 'var(--text-muted, #94a3b8)',
-                                            fontWeight: 600,
-                                            fontSize: '0.85rem',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.15s ease'
-                                        }}
-                                    >
-                                        Maths
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setBitsatMode('biology')}
-                                        style={{
-                                            padding: '6px 18px',
-                                            borderRadius: '7px',
-                                            border: 'none',
-                                            background: bitsatMode === 'biology' ? '#10b981' : 'transparent',
-                                            color: bitsatMode === 'biology' ? '#ffffff' : 'var(--text-muted, #94a3b8)',
-                                            fontWeight: 600,
-                                            fontSize: '0.85rem',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.15s ease'
-                                        }}
-                                    >
-                                        Biology
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className={isBoardPage ? styles.list : styles.grid}>
-                            {currentMockTests.length > 0 ? (
-                                currentMockTests.map(test => (
-                                    <TestCard key={test.id} test={test} exam={exam} session={session} layout={isBoardPage ? "list" : "card"} isCompleted={completedTestIds.has((test.id || '').trim().toLowerCase())} />
-                                ))
-                            ) : (
-                                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                                    No {bitsatMode === 'biology' ? 'Biology' : 'Mathematics'} Full Tests available yet.
-                                </div>
-                            )}
-                        </div>
-                    </>
-                )}
-
-                {/* Part Tests Tab Content */}
-                {activeTab === 'part' && (
-                    <div className={isBoardPage ? styles.list : styles.grid}>
-                        {currentPartTests.length > 0 ? (
-                            currentPartTests.map(test => (
-                                <TestCard key={test.id} test={test} exam={exam} session={session} layout={isBoardPage ? "list" : "card"} isCompleted={completedTestIds.has((test.id || '').trim().toLowerCase())} />
-                            ))
-                        ) : (
-                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                                No Class {activeClass} Part Tests available yet.
-                            </div>
-                        )}
+                    {/* Search Input */}
+                    <div style={{ position: 'relative', minWidth: '260px' }}>
+                        <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                        <input
+                            type="text"
+                            placeholder="Search papers or topics..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '0.55rem 1rem 0.55rem 2.4rem',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(148, 163, 184, 0.2)',
+                                background: 'rgba(15, 23, 42, 0.7)',
+                                color: '#ffffff',
+                                fontSize: '0.9rem',
+                                outline: 'none'
+                            }}
+                        />
                     </div>
-                )}
-
-                {/* PYQ Tab Content */}
-                {activeTab === 'pyq' && (
-                    <div className={isBoardPage ? styles.list : styles.grid}>
-                        {currentPyqTests.length > 0 ? (
-                            currentPyqTests.map(test => (
-                                <TestCard key={test.id} test={test} exam={exam} session={session} layout={isBoardPage ? "list" : "card"} isCompleted={completedTestIds.has((test.id || '').trim().toLowerCase())} />
-                            ))
-                        ) : (
-                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                                No Class {activeClass} PYQ available yet.
-                            </div>
-                        )}
-                    </div>
-                )}
-
-
-
-                {/* Subjectwise Tests Tab Content */}
-                {activeTab === 'subject' && (
-                    <div style={{ marginTop: '1.5rem' }}>
-                        {/* Subject Filters and Search Box */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div className={styles.classToggleContainer} style={{ margin: 0, padding: 0, background: 'transparent' }}>
-                                {['All', ...new Set(currentSubjectTests.map(t => t.subject).filter(Boolean))].map(subj => (
-                                    <button 
-                                        key={subj}
-                                        className={`${styles.classToggleBtn} ${activeSubject === subj ? styles.classToggleBtnActive : ''}`}
-                                        onClick={() => setActiveSubject(subj)}
-                                    >
-                                        {subj}
-                                    </button>
-                                ))}
-                            </div>
-                            <input 
-                                type="text"
-                                placeholder="Search chapters..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                style={{
-                                    padding: '0.75rem 1rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    background: 'rgba(0,0,0,0.2)',
-                                    color: 'var(--foreground)',
-                                    minWidth: '250px',
-                                    outline: 'none',
-                                    fontFamily: 'inherit'
-                                }}
-                            />
-                        </div>
-
-                        {(() => {
-                            let filteredTests = currentSubjectTests;
-                            if (activeSubject !== 'All') {
-                                filteredTests = filteredTests.filter(t => t.subject === activeSubject);
-                            }
-                            if (searchQuery.trim() !== '') {
-                                const q = searchQuery.toLowerCase();
-                                filteredTests = filteredTests.filter(t => (t.chapter || '').toLowerCase().includes(q) || t.title?.toLowerCase().includes(q));
-                            }
-                            
-                            const subjects = [...new Set(filteredTests.map(t => t.subject).filter(Boolean))];
-                            
-                            if (subjects.length === 0) {
-                                return <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>No tests match your filter/search.</div>;
-                            }
-
-                            return subjects.map((subject) => {
-                                const subjectSpecificTests = filteredTests.filter(t => t.subject === subject);
-                                // Default collapsed unless actively searching
-                                const isExpanded = expandedSubjects[subject] ?? (searchQuery.trim() !== '');
-
-                                return (
-                                    <div key={subject} style={{ marginBottom: '2rem' }}>
-                                        <div
-                                            onClick={() => setExpandedSubjects(prev => ({ ...prev, [subject]: !isExpanded }))}
-                                            className="glass-panel"
-                                            style={{
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'space-between',
-                                                padding: '1rem 1.25rem',
-                                                borderRadius: '12px',
-                                                marginBottom: '1rem'
-                                            }}
-                                        >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <div style={{ 
-                                                    background: 'var(--primary)', 
-                                                    width: '4px', 
-                                                    height: '24px', 
-                                                    borderRadius: '2px', 
-                                                    boxShadow: '0 0 10px var(--primary)'
-                                                }} />
-                                                <h3 style={{ fontSize: '1.25rem', fontWeight: '700', margin: 0 }}>
-                                                    {subject}
-                                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '400', marginLeft: '0.75rem' }}>
-                                                        ({subjectSpecificTests.length} tests)
-                                                    </span>
-                                                </h3>
-                                            </div>
-                                            <div style={{ 
-                                                width: '32px', 
-                                                height: '32px', 
-                                                borderRadius: '50%', 
-                                                background: 'rgba(255,255,255,0.05)', 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                justifyContent: 'center',
-                                                transition: 'transform 0.3s'
-                                            }}>
-                                                <span style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>{isExpanded ? '−' : '+'}</span>
-                                            </div>
-                                        </div>
-
-                                        {isExpanded && (
-                                            <div className={isBoardPage ? styles.list : styles.grid} style={{ marginTop: '1.5rem' }}>
-                                                {subjectSpecificTests.map(test => (
-                                                    <TestCard key={test.id} test={test} exam={exam} session={session} layout={isBoardPage ? "list" : "card"} isCompleted={completedTestIds.has((test.id || '').trim().toLowerCase())} />
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            });
-                        })()}
-                    </div>
-                )}
-
-                {/* Chapterwise Tests Tab Content */}
-                {activeTab === 'chapter' && (
-                    <div style={{ marginTop: '1.5rem', position: 'relative' }}>
-                        {(() => {
-                            const subjects = [...new Set(currentChapterTests.map(t => t.subject).filter(Boolean))];
-                            return subjects.map((subject) => {
-                                const subjectSpecificTests = currentChapterTests.filter(t => t.subject === subject);
-                                // Default collapsed for all chapterwise subjects
-                                const isSubjectExpanded = expandedChapterSubjects[subject] ?? false;
-                                const chaptersInSubject = [...new Set(subjectSpecificTests.map(t => t.chapter).filter(Boolean))];
-
-                                return (
-                                    <div key={subject} style={{ marginBottom: '2rem', position: 'relative' }}>
-                                        {/* Level 1: Subject Header (Premium Glass) */}
-                                        <div
-                                            onClick={() => setExpandedChapterSubjects(prev => ({ ...prev, [subject]: !isSubjectExpanded }))}
-                                            className="glass-panel"
-                                            style={{
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'space-between',
-                                                padding: '1rem 1.25rem',
-                                                borderRadius: '12px',
-                                                marginBottom: '1rem'
-                                            }}
-                                        >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <div style={{ 
-                                                    background: 'var(--primary)', 
-                                                    width: '4px', 
-                                                    height: '24px', 
-                                                    borderRadius: '2px', 
-                                                    boxShadow: '0 0 10px var(--primary)'
-                                                }} />
-                                                <h3 style={{ fontSize: '1.25rem', fontWeight: '700', margin: 0 }}>
-                                                    {subject}
-                                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '400', marginLeft: '0.75rem' }}>
-                                                        ({subjectSpecificTests.length} tests)
-                                                    </span>
-                                                </h3>
-                                            </div>
-                                            <div style={{ 
-                                                width: '32px', 
-                                                height: '32px', 
-                                                borderRadius: '50%', 
-                                                background: 'rgba(255,255,255,0.05)', 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                justifyContent: 'center',
-                                                transition: 'transform 0.3s'
-                                            }}>
-                                                <span style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>{isSubjectExpanded ? '−' : '+'}</span>
-                                            </div>
-                                        </div>
-
-                                        {isSubjectExpanded && (
-                                            <div style={{ paddingTop: '0.5rem', paddingLeft: '2.5rem', position: 'relative' }}>
-                                                {/* Vertical Connection Line */}
-                                                <div className="roadmap-line" style={{ left: '0.9rem' }} />
-
-                                                {chaptersInSubject.map((chapter) => {
-                                                    const chapterTests = subjectSpecificTests.filter(t => t.chapter === chapter);
-                                                    const chapterKey = subject + '-' + chapter;
-                                                    // Default compressed (collapsed) inside chapterwise tests
-                                                    const isChapterExpanded = Boolean(expandedChapters[chapterKey]);
-
-                                                    return (
-                                                        <div key={chapter} style={{ marginBottom: isChapterExpanded ? '2rem' : '1.5rem', position: 'relative' }}>
-                                                            {/* Chapter Connection Dot */}
-                                                            <div className="chapter-dot" style={{ left: '-1.85rem' }} />
-
-                                                            {/* Level 2: Chapter Header (Collapsible) */}
-                                                            <div 
-                                                                onClick={() => setExpandedChapters(prev => ({ ...prev, [chapterKey]: !isChapterExpanded }))}
-                                                                style={{
-                                                                    cursor: 'pointer',
-                                                                    display: 'inline-flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '0.75rem',
-                                                                    marginBottom: isChapterExpanded ? '1.25rem' : '0.5rem',
-                                                                    padding: '0.45rem 0.85rem',
-                                                                    borderRadius: '10px',
-                                                                    background: isChapterExpanded ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
-                                                                    border: '1px solid ' + (isChapterExpanded ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)'),
-                                                                    transition: 'all 0.2s ease',
-                                                                    userSelect: 'none'
-                                                                }}
-                                                            >
-                                                                <span style={{ 
-                                                                    fontSize: '0.75rem', 
-                                                                    color: isChapterExpanded ? 'var(--primary)' : 'var(--text-muted)',
-                                                                    transition: 'transform 0.2s'
-                                                                }}>
-                                                                    {isChapterExpanded ? '▼' : '▶'}
-                                                                </span>
-                                                                <h4 style={{ 
-                                                                    fontSize: '1.05rem', 
-                                                                    fontWeight: '600', 
-                                                                    margin: 0, 
-                                                                    color: isChapterExpanded ? 'var(--foreground)' : 'var(--text-muted)',
-                                                                    transition: 'color 0.2s'
-                                                                }}>
-                                                                    {chapter}
-                                                                    <span style={{ fontSize: '0.8rem', opacity: 0.6, fontWeight: '400', marginLeft: '0.5rem' }}>
-                                                                        • {chapterTests.length} tests
-                                                                    </span>
-                                                                </h4>
-                                                            </div>
-
-                                                            {/* Level 3: Test Grid */}
-                                                            {isChapterExpanded && (
-                                                                <div className={isBoardPage ? styles.list : styles.grid} style={{ gap: '1.25rem' }}>
-                                                                    {chapterTests.map(test => (
-                                                                        <TestCard key={test.id} test={test} exam={exam} session={session} layout={isBoardPage ? "list" : "card"} isCompleted={completedTestIds.has((test.id || '').trim().toLowerCase())} />
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            });
-                        })()}
-                    </div>
-                )}
-
-                {activeTab === 'subtopic' && (
-                    <div style={{ marginTop: '1.5rem', position: 'relative' }}>
-                        {(() => {
-                            const subjectList = [...new Set(currentSubtopicTests.map(t => t.subject).filter(Boolean))];
-                            return subjectList.map((subject) => {
-                                const subjectSpecificTests = currentSubtopicTests.filter(t => t.subject === subject);
-                                // Default collapsed for all subtopic subjects
-                                const isSubjectExpanded = expandedSubtopics[subject] ?? false;
-                                const chaptersInSubject = [...new Set(subjectSpecificTests.map(t => t.chapter).filter(Boolean))];
-
-                                return (
-                                    <div key={subject} style={{ marginBottom: '2rem', position: 'relative' }}>
-                                        {/* Level 1: Subject Header (Premium Glass) */}
-                                        <div
-                                            onClick={() => setExpandedSubtopics(prev => ({ ...prev, [subject]: !isSubjectExpanded }))}
-                                            className="glass-panel"
-                                            style={{
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'space-between',
-                                                padding: '1rem 1.25rem',
-                                                borderRadius: '12px',
-                                                marginBottom: '1rem'
-                                            }}
-                                        >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <div style={{ 
-                                                    background: 'var(--primary)', 
-                                                    width: '4px', 
-                                                    height: '24px', 
-                                                    borderRadius: '2px', 
-                                                    boxShadow: '0 0 10px var(--primary)'
-                                                }} />
-                                                <h3 style={{ fontSize: '1.3rem', fontWeight: '700', margin: 0, letterSpacing: '-0.02em' }}>
-                                                    {subject}
-                                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '400', marginLeft: '0.75rem', opacity: 0.7 }}>
-                                                        {subjectSpecificTests.length} conceptual tests
-                                                    </span>
-                                                </h3>
-                                            </div>
-                                            <div style={{ 
-                                                width: '32px', 
-                                                height: '32px', 
-                                                borderRadius: '50%', 
-                                                background: 'rgba(255,255,255,0.05)', 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                justifyContent: 'center',
-                                                transition: 'transform 0.3s'
-                                            }}>
-                                                <span style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>{isSubjectExpanded ? '−' : '+'}</span>
-                                            </div>
-                                        </div>
-
-                                        {isSubjectExpanded && (
-                                            <div style={{ paddingTop: '0.5rem', paddingLeft: '2.5rem', position: 'relative' }}>
-                                                {/* Vertical Connection Line */}
-                                                <div className="roadmap-line" style={{ left: '0.9rem' }} />
-
-                                                {chaptersInSubject.length > 0 ? (
-                                                    chaptersInSubject.map((chapter) => {
-                                                        const chapterTests = subjectSpecificTests.filter(t => t.chapter === chapter);
-                                                        const chapterKey = subject + '-' + chapter;
-                                                        // Default compressed (collapsed) inside subtopic chapters
-                                                        const isChapterExpanded = Boolean(expandedSubtopicChapters[chapterKey]);
-
-                                                        return (
-                                                            <div key={chapter} style={{ marginBottom: '1.5rem', position: 'relative' }}>
-                                                                {/* Chapter Connection Dot */}
-                                                                <div className="chapter-dot" style={{ left: '-1.85rem' }} />
-
-                                                                {/* Level 2: Chapter Header (Collapsible) */}
-                                                                <div 
-                                                                    onClick={() => setExpandedSubtopicChapters(prev => ({ ...prev, [chapterKey]: !isChapterExpanded }))}
-                                                                    style={{
-                                                                        cursor: 'pointer',
-                                                                        display: 'inline-flex',
-                                                                        alignItems: 'center',
-                                                                        gap: '0.75rem',
-                                                                        marginBottom: isChapterExpanded ? '1.25rem' : '0.5rem',
-                                                                        padding: '0.45rem 0.85rem',
-                                                                        borderRadius: '10px',
-                                                                        background: isChapterExpanded ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
-                                                                        border: '1px solid ' + (isChapterExpanded ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)'),
-                                                                        transition: 'all 0.2s ease',
-                                                                        userSelect: 'none'
-                                                                    }}
-                                                                >
-                                                                    <span style={{ 
-                                                                        fontSize: '0.75rem', 
-                                                                        color: isChapterExpanded ? 'var(--primary)' : 'var(--text-muted)',
-                                                                        transition: 'transform 0.2s'
-                                                                    }}>
-                                                                        {isChapterExpanded ? '▼' : '▶'}
-                                                                    </span>
-                                                                    <h4 style={{ 
-                                                                        fontSize: '1.05rem', 
-                                                                        fontWeight: '600', 
-                                                                        margin: 0, 
-                                                                        color: isChapterExpanded ? 'var(--foreground)' : 'var(--text-muted)',
-                                                                        transition: 'color 0.2s'
-                                                                    }}>
-                                                                        {chapter}
-                                                                        <span style={{ fontSize: '0.8rem', opacity: 0.6, fontWeight: '400', marginLeft: '0.5rem' }}>
-                                                                            • {chapterTests.length} tests
-                                                                        </span>
-                                                                    </h4>
-                                                                </div>
-
-                                                                {/* Level 3: Test Grid */}
-                                                                {isChapterExpanded && (
-                                                                    <div className={isBoardPage ? styles.list : styles.grid} style={{ gap: '1.25rem' }}>
-                                                                        {chapterTests.map(test => (
-                                                                            <TestCard key={test.id} test={test} exam={exam} session={session} layout={isBoardPage ? "list" : "card"} isCompleted={completedTestIds.has((test.id || '').trim().toLowerCase())} />
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })
-                                                ) : (
-                                                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
-                                                        No subtopics available for this subject.
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            });
-                        })()}
-                    </div>
-                )}
+                </div>
             </div>
+
+            {/* Test Cards Grid */}
+            <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1rem 4rem 1rem' }}>
+                <div style={{ marginBottom: '1rem', color: '#94a3b8', fontSize: '0.9rem' }}>
+                    Showing <strong style={{ color: '#ffffff' }}>{filteredTests.length}</strong> examination papers for Class {selectedClass}
+                    {selectedSubject !== 'all' ? ` in ${selectedSubject.charAt(0).toUpperCase() + selectedSubject.slice(1)}` : ''}:
+                </div>
+
+                {filteredTests.length === 0 ? (
+                    <div style={{
+                        textAlign: 'center',
+                        padding: '4rem 2rem',
+                        background: 'rgba(30, 41, 59, 0.4)',
+                        borderRadius: '16px',
+                        border: '1px dashed rgba(148, 163, 184, 0.2)',
+                        color: '#94a3b8'
+                    }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🔍</div>
+                        <h3>No Olympiad papers found matching your criteria</h3>
+                        <p style={{ marginTop: '0.5rem' }}>Try clearing the search query or selecting a different subject.</p>
+                    </div>
+                ) : (
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                        gap: '1.25rem'
+                    }}>
+                        {filteredTests.map(test => (
+                            <TestCard
+                                key={test.id}
+                                test={test}
+                                exam="olympiad"
+                                session={session}
+                                isCompleted={completedTestIds.has((test.id || '').trim().toLowerCase())}
+                            />
+                        ))}
+                    </div>
+                )}
+            </main>
         </div>
     );
 }
 
-export default function ExamPage({ params }) {
+export default function ExamPage(props) {
     return (
-        <Suspense fallback={<div className={styles.container} style={{ textAlign: 'center', padding: '50px', color: 'white' }}>Loading test series...</div>}>
-            <ExamPageContent params={params} />
+        <Suspense fallback={
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                Loading Olympiad tests...
+            </div>
+        }>
+            <ExamPageContent {...props} />
         </Suspense>
     );
 }

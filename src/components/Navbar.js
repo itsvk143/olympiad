@@ -4,7 +4,6 @@ import { usePathname } from 'next/navigation';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import styles from './Navbar.module.css';
-import { normalizeToCanonicalExam } from '@/lib/authorization';
 import ThemeToggle from './ThemeToggle';
 
 const Navbar = () => {
@@ -19,7 +18,6 @@ const Navbar = () => {
         }
     }, [session]);
 
-    // Close menu on route changes or outside click
     useEffect(() => {
         const handleResize = () => {
             if (window.innerWidth > 768) setMenuOpen(false);
@@ -40,28 +38,14 @@ const Navbar = () => {
 
     const closeMenu = () => setMenuOpen(false);
 
-    const userCanonicalExam = normalizeToCanonicalExam(userProfile?.exam || userProfile?.examPreparingFor);
-
-    // If logged in and exam is assigned (and user is not admin), lock navigation strictly to their assigned exam
-    const isExamAssigned = !!session && !session?.user?.isAdmin && !!userCanonicalExam;
-
-    const shouldShowNEET = !isExamAssigned || userCanonicalExam === 'NEET';
-    const shouldShowJEEMains = !isExamAssigned || userCanonicalExam === 'JEE_MAIN';
-    const shouldShowBITSAT = !isExamAssigned || userCanonicalExam === 'BITSAT';
-
-    const neetLabel = isExamAssigned ? 'NEET TEST SERIES' : 'NEET';
-    const jeeLabel = isExamAssigned ? 'JEE MAIN TEST SERIES' : 'JEE Mains';
-    const bitsatLabel = isExamAssigned ? 'BITSAT TEST SERIES' : 'BITSAT';
-
-
     return (
         <nav className={styles.navbar}>
             <div className={styles.container}>
                 <Link href="/" className={styles.logo}>
-                    PollTest<span className={styles.highlight}>Series</span>
+                    Olympiad<span className={styles.highlight}>Platform</span>
                 </Link>
 
-                {/* Mobile Right Actions: Theme Toggle + Sign Up + Hamburger */}
+                {/* Mobile Right Actions: Theme Toggle + Sign In + Hamburger */}
                 <div className={styles.mobileRightActions}>
                     <ThemeToggle variant="compact" />
 
@@ -71,7 +55,7 @@ const Navbar = () => {
                             className={styles.mobileSignupBtn}
                             aria-label="Sign Up"
                         >
-                            Sign Up
+                            Sign In
                         </button>
                     )}
 
@@ -90,36 +74,54 @@ const Navbar = () => {
                 {/* Desktop Links */}
                 <div className={styles.links}>
                     <Link
+                        href="/test-series"
+                        className={`${styles.link} ${pathname?.startsWith('/test-series') ? styles.activeLink : ''}`}
+                    >
+                        🏆 Olympiad
+                    </Link>
+
+                    {session && (
+                        <>
+                            <Link
+                                href="/dashboard"
+                                className={`${styles.link} ${pathname === '/dashboard' ? styles.activeLink : ''}`}
+                            >
+                                📊 Dashboard
+                            </Link>
+                            <Link
+                                href="/poll"
+                                className={styles.link}
+                                style={{ color: '#c084fc', fontWeight: 'bold' }}
+                            >
+                                🗳️ Poll
+                            </Link>
+                        </>
+                    )}
+
+                    <Link
                         href="/about"
                         className={`${styles.link} ${pathname === '/about' ? styles.activeLink : ''}`}
                     >
                         About
                     </Link>
-                    {session && (
-                        <Link href="/poll" className={styles.link} style={{ color: '#c084fc', fontWeight: 'bold' }}>
-                            🗳️ POLL
-                        </Link>
-                    )}
-                    {shouldShowNEET && <Link href="/test-series/neet" className={styles.link}>{neetLabel}</Link>}
-                    {shouldShowJEEMains && <Link href="/test-series/jee-mains" className={styles.link}>{jeeLabel}</Link>}
-                    {shouldShowBITSAT && <Link href="/test-series/bitsat" className={styles.link}>{bitsatLabel}</Link>}
 
                     {/* Day / Night Theme Toggle */}
                     <ThemeToggle variant="segmented" />
 
                     {session ? (
                         <>
-                            <Link href="/dashboard" className={styles.link} style={{ color: '#34c759', fontWeight: 'bold' }}>
-                                📊 Dashboard
-                            </Link>
-                            <span className={styles.link} style={{ color: '#7dd3fc', fontWeight: 'normal' }}>
-                                👤 {session.user?.name}
-                            </span>
                             {session.user?.isAdmin && (
-                                <Link href="/admin" className={styles.link} style={{ color: '#f59e0b', fontWeight: 'bold' }}>
+                                <Link
+                                    href="/admin"
+                                    className={styles.link}
+                                    style={{ color: '#f59e0b', fontWeight: 'bold' }}
+                                >
                                     ⚙️ Admin
                                 </Link>
                             )}
+                            <span className={styles.link} style={{ color: '#7dd3fc', fontWeight: 'normal' }}>
+                                👤 {session.user?.name?.split(' ')[0] || 'Student'}
+                            </span>
                             <button
                                 onClick={() => signOut()}
                                 className={styles.authBtn}
@@ -147,6 +149,33 @@ const Navbar = () => {
                     <ThemeToggle variant="segmented" />
                 </div>
                 <Link
+                    href="/test-series"
+                    className={`${styles.mobileLink} ${pathname?.startsWith('/test-series') ? styles.activeMobileLink : ''}`}
+                    onClick={closeMenu}
+                >
+                    🏆 Olympiad Tests
+                </Link>
+                {session && (
+                    <>
+                        <Link
+                            href="/dashboard"
+                            className={`${styles.mobileLink} ${pathname === '/dashboard' ? styles.activeMobileLink : ''}`}
+                            onClick={closeMenu}
+                            style={{ color: '#34c759' }}
+                        >
+                            📊 Dashboard
+                        </Link>
+                        <Link
+                            href="/poll"
+                            className={styles.mobileLink}
+                            onClick={closeMenu}
+                            style={{ color: '#c084fc', fontWeight: 'bold' }}
+                        >
+                            🗳️ Community Poll
+                        </Link>
+                    </>
+                )}
+                <Link
                     href="/about"
                     className={`${styles.mobileLink} ${pathname === '/about' ? styles.activeMobileLink : ''}`}
                     onClick={closeMenu}
@@ -160,28 +189,22 @@ const Navbar = () => {
                 >
                     Contact
                 </Link>
-                {session && (
-                    <Link href="/poll" className={styles.mobileLink} onClick={closeMenu} style={{ color: '#c084fc', fontWeight: 'bold' }}>
-                        🗳️ POLL
-                    </Link>
-                )}
-                {shouldShowNEET && <Link href="/test-series/neet" className={styles.mobileLink} onClick={closeMenu}>{neetLabel}</Link>}
-                {shouldShowJEEMains && <Link href="/test-series/jee-mains" className={styles.mobileLink} onClick={closeMenu}>{jeeLabel}</Link>}
-                {shouldShowBITSAT && <Link href="/test-series/bitsat" className={styles.mobileLink} onClick={closeMenu}>{bitsatLabel}</Link>}
 
                 {session ? (
                     <>
-                        <Link href="/dashboard" className={styles.mobileLink} onClick={closeMenu} style={{ color: '#34c759' }}>
-                            📊 Dashboard
-                        </Link>
+                        {session.user?.isAdmin && (
+                            <Link
+                                href="/admin"
+                                className={styles.mobileLink}
+                                onClick={closeMenu}
+                                style={{ color: '#f59e0b' }}
+                            >
+                                ⚙️ Admin Portal
+                            </Link>
+                        )}
                         <span className={styles.mobileLink} style={{ color: '#7dd3fc' }}>
                             👤 {session.user?.name}
                         </span>
-                        {session.user?.isAdmin && (
-                            <Link href="/admin" className={styles.mobileLink} onClick={closeMenu} style={{ color: '#f59e0b' }}>
-                                ⚙️ Admin
-                            </Link>
-                        )}
                         <button
                             onClick={() => { signOut(); closeMenu(); }}
                             className={`${styles.authBtn} ${styles.mobileAuthBtn}`}
@@ -204,7 +227,7 @@ const Navbar = () => {
                             className={`${styles.authBtn} ${styles.mobileAuthBtn}`}
                             style={{ background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(99,102,241,0.6)', marginTop: '0.5rem', fontWeight: '700' }}
                         >
-                            🎓 Sign Up / Register
+                            🎓 Student Registration
                         </button>
                     </>
                 )}

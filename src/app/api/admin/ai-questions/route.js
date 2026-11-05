@@ -248,19 +248,10 @@ export async function POST(request) {
 
             for (const q of questions) {
                 const centralQ = formatQuestionToCentralized(q);
-                const isBitsatQ = exam?.toLowerCase() === 'bitsat' || (testId && testId.toLowerCase().includes('bitsat'));
-                if (isBitsatQ) {
-                    centralQ.targetExams = ['BITSAT'];
-                    centralQ.source = 'AI-Generated Practice';
-                    centralQ.isPYQ = false;
-                    centralQ.marks = 3;
-                    centralQ.negativeMarks = 1;
-                    if (!centralQ.commercialId) {
-                        const prefix = centralQ.subject === 'English Proficiency' ? 'BITSAT-ENG-' : centralQ.subject === 'Logical Reasoning' ? 'BITSAT-LR-' : 'BITSAT-Q-';
-                        const countDoc = await db.collection('questionBank').countDocuments({ commercialId: { $regex: `^${prefix}` } });
-                        centralQ.commercialId = `${prefix}${String(countDoc + 1).padStart(6, '0')}`;
-                    }
-                }
+                centralQ.targetExams = ['OLYMPIAD'];
+                centralQ.examType = 'Olympiad';
+                centralQ.marks = 1;
+                centralQ.negativeMarks = 0;
 
                 let questionId;
                 // De-duplicate check
@@ -294,18 +285,19 @@ export async function POST(request) {
                 legacyQuestionsWithIds.push(legacyQ);
             }
 
-            // Update test paper (or create if not exists, but it should exist or get created)
-            const isBitsatTest = testId.startsWith('bitsat');
+            // Update test paper (or create if not exists)
             await db.collection('testPapers').updateOne(
                 { testId },
                 { 
                     $push: { questions: { $each: questionIds } },
                     $setOnInsert: { 
                         title: testId.replace(/-/g, ' '),
-                        exam: testId.startsWith('neet') ? 'NEET' : testId.startsWith('jee-mains') ? 'JEE Main' : (isBitsatTest ? 'BITSAT' : 'Other'),
-                        subject: testId.includes('Physics') ? 'Physics' : testId.includes('Chemistry') ? 'Chemistry' : testId.includes('Mathematics') ? 'Mathematics' : testId.includes('English') ? 'English Proficiency' : testId.includes('Reasoning') ? 'Logical Reasoning' : 'Mixed',
-                        duration: testId.includes('SUBJECT') || testId.includes('CHAPTER') ? 60 : 180,
-                        totalMarks: isBitsatTest ? (testId.includes('SUBJECT') || testId.includes('CHAPTER') ? 90 : 390) : (testId.startsWith('neet') ? (testId.includes('SUBJECT') || testId.includes('CHAPTER') ? 180 : 720) : (testId.includes('SUBJECT') || testId.includes('CHAPTER') ? 100 : 300)),
+                        exam: 'olympiad',
+                        examType: 'Olympiad',
+                        category: 'olympiad',
+                        subject: testId.includes('math') ? 'Mathematics' : testId.includes('sci') ? 'Science' : testId.includes('eng') ? 'English' : 'Mathematics',
+                        duration: 60,
+                        totalMarks: questionIds.length,
                         createdAt: new Date()
                     },
                     $set: { updatedAt: new Date() }

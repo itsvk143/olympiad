@@ -41,3 +41,4 @@
 | Science (Class 9–12) | 9–12 | 40 | 50 | 2,000 | Staged |
 | English (Class 9–12) | 9–12 | 40 | 50 | 2,000 | Staged |
 | **Total** | **Classes 1–12** | **360 Tests** | **Var.** | **13,800 Assignments** | Staged |
+

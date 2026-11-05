@@ -214,8 +214,7 @@ export default function AdminUserDetail({ params }) {
                     const subjectAgg = {};
                     activeData.forEach(r => {
                         if (r.subjectStats) {
-                            const isBitsat = (r.examType || r.testId || '').toLowerCase().includes('bitsat');
-                            const defaultPos = isBitsat ? 3 : 4;
+                            const defaultPos = r.marksPerQuestion || 1;
                             Object.entries(r.subjectStats).forEach(([subj, stat]) => {
                                 if (!subjectAgg[subj]) subjectAgg[subj] = { subject: subj, score: 0, total: 0 };
                                 const statScore = stat.score || 0;
