@@ -61,10 +61,26 @@ export function generateOlympiadTests() {
 
                 const totalMarks = config.questionsCount * config.marksPerQuestion;
 
+                let title = `Class ${classNum} ${subject} Olympiad — Paper ${padPaper}`;
+                let description = `Official Class ${classNum} ${subject} Olympiad Paper ${padPaper}. Contains ${config.questionsCount} questions (${diffDist.easyPct}% Easy, ${diffDist.modPct}% Moderate, ${diffDist.diffPct}% Difficult). Duration: ${config.duration} minutes.`;
+
+                if (classNum === 11) {
+                    if (subject === 'Mathematics') {
+                        title = `Class 11 Mathematics Olympiad (IOQM → RMO → INMO → IMO Pathway) — Paper ${padPaper}`;
+                        description = `Official Class 11 Mathematics Olympiad Paper ${padPaper}. Calibrated to India’s national and international qualification pathway: IOQM → RMO → INMO → IMO. Covers Number Theory, Combinatorics, Geometry & Olympiad Algebra. (${diffDist.easyPct}% Easy, ${diffDist.modPct}% Moderate, ${diffDist.diffPct}% Difficult).`;
+                    } else if (subject === 'Science') {
+                        title = `Class 11 Science Olympiad (NSEP Physics • NSEC Chemistry • NSEB Biology) — Paper ${padPaper}`;
+                        description = `Official Class 11 Science Olympiad Paper ${padPaper}. Aligned with the official Indian national selection pathway for representing India globally: Physics (NSEP → INPhO), Chemistry (NSEC → INChO), and Biology (NSEB → INBO). (${diffDist.easyPct}% Easy, ${diffDist.modPct}% Moderate, ${diffDist.diffPct}% Difficult).`;
+                    } else if (subject === 'English') {
+                        title = `Class 11 English Olympiad (IEO / Senior International Standard) — Paper ${padPaper}`;
+                        description = `Official Class 11 English Olympiad Paper ${padPaper}. Advanced rhetorical structures, critical reading, discourse analysis and lexicon. (${diffDist.easyPct}% Easy, ${diffDist.modPct}% Moderate, ${diffDist.diffPct}% Difficult).`;
+                    }
+                }
+
                 tests.push({
                     id: testId,
                     testId: testId,
-                    title: `Class ${classNum} ${subject} Olympiad — Paper ${padPaper}`,
+                    title: title,
                     exam: 'olympiad',
                     examType: 'Olympiad',
                     category: 'olympiad',
@@ -83,7 +99,7 @@ export function generateOlympiadTests() {
                     difficulty: paperNum <= 3 ? 'Easy' : (paperNum <= 7 ? 'Moderate' : 'Difficult'),
                     difficultyDistribution: diffDist,
                     topics: topics,
-                    description: `Official Class ${classNum} ${subject} Olympiad Paper ${padPaper}. Contains ${config.questionsCount} questions (${diffDist.easyPct}% Easy, ${diffDist.modPct}% Moderate, ${diffDist.diffPct}% Difficult). Duration: ${config.duration} minutes.`,
+                    description: description,
                     status: 'PUBLISHED',
                     questions: [] // Array of Central Question Bank ObjectIds
                 });

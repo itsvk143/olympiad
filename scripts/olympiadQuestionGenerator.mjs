@@ -4,6 +4,12 @@
  * Mathematics (IMO), Science (NSO), and English (IEO).
  */
 
+import {
+    generateClass11MathQuestion,
+    generateClass11ScienceQuestion,
+    generateClass11EnglishQuestion
+} from './olympiadClass11Questions.mjs';
+
 export const OLYMPIAD_CLASSES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 export const OLYMPIAD_SUBJECTS = ['Mathematics', 'Science', 'English'];
 
@@ -144,6 +150,116 @@ export function generateSvgDiagram(type, params = {}) {
             <text x="80" y="215" fill="#94a3b8" font-size="11">${element} Atom</text>
         </svg>`;
     }
+    if (type === 'cyclic_quadrilateral') {
+        const { a = 'A', b = 'B', c = 'C', d = 'D', p = 'P' } = params;
+        return `<svg viewBox="0 0 240 240" width="240" height="240" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="120" cy="120" r="90" fill="rgba(56, 189, 248, 0.08)" stroke="#38bdf8" stroke-width="2" />
+            <polygon points="120,30 205,95 175,195 45,170" fill="rgba(99, 102, 241, 0.12)" stroke="#818cf8" stroke-width="2" />
+            <line x1="120" y1="30" x2="175" y2="195" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3" />
+            <line x1="205" y1="95" x2="45" y2="170" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3" />
+            <circle cx="125" cy="115" r="3.5" fill="#ef4444" />
+            <text x="115" y="22" fill="#f8fafc" font-size="13" font-weight="bold">${a}</text>
+            <text x="212" y="100" fill="#f8fafc" font-size="13" font-weight="bold">${b}</text>
+            <text x="180" y="212" fill="#f8fafc" font-size="13" font-weight="bold">${c}</text>
+            <text x="28" y="180" fill="#f8fafc" font-size="13" font-weight="bold">${d}</text>
+            <text x="132" y="112" fill="#ef4444" font-size="11" font-weight="bold">${p}</text>
+        </svg>`;
+    }
+    if (type === 'geometry_ceva') {
+        return `<svg viewBox="0 0 240 200" width="240" height="200" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="120,30 30,170 210,170" fill="rgba(56, 189, 248, 0.08)" stroke="#38bdf8" stroke-width="2" />
+            <line x1="120" y1="30" x2="135" y2="170" stroke="#f59e0b" stroke-width="1.5" />
+            <line x1="30" y1="170" x2="165" y2="100" stroke="#f59e0b" stroke-width="1.5" />
+            <line x1="210" y1="170" x2="75" y2="100" stroke="#f59e0b" stroke-width="1.5" />
+            <circle cx="123" cy="118" r="3.5" fill="#ef4444" />
+            <text x="115" y="22" fill="#f8fafc" font-size="12" font-weight="bold">A</text>
+            <text x="15" y="178" fill="#f8fafc" font-size="12" font-weight="bold">B</text>
+            <text x="218" y="178" fill="#f8fafc" font-size="12" font-weight="bold">C</text>
+            <text x="133" y="188" fill="#a5b4fc" font-size="11">D</text>
+            <text x="173" y="102" fill="#a5b4fc" font-size="11">E</text>
+            <text x="60" y="102" fill="#a5b4fc" font-size="11">F</text>
+            <text x="130" y="120" fill="#ef4444" font-size="11" font-weight="bold">P</text>
+        </svg>`;
+    }
+    if (type === 'physics_rotational_pulley') {
+        return `<svg viewBox="0 0 220 220" width="220" height="220" xmlns="http://www.w3.org/2000/svg">
+            <line x1="60" y1="20" x2="160" y2="20" stroke="#94a3b8" stroke-width="4" />
+            <line x1="110" y1="20" x2="110" y2="60" stroke="#94a3b8" stroke-width="2.5" />
+            <circle cx="110" cy="80" r="35" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" stroke-width="2.5" />
+            <circle cx="110" cy="80" r="5" fill="#f59e0b" />
+            <text x="100" y="85" fill="#f8fafc" font-size="10">M, R</text>
+            <line x1="145" y1="80" x2="145" y2="160" stroke="#cbd5e1" stroke-width="2" />
+            <rect x="130" y="160" width="30" height="30" fill="rgba(244, 63, 94, 0.2)" stroke="#f43f5e" stroke-width="2" />
+            <text x="140" y="180" fill="#f8fafc" font-size="12" font-weight="bold">m</text>
+            <text x="155" y="125" fill="#f59e0b" font-size="11">T</text>
+        </svg>`;
+    }
+    if (type === 'thermo_pv_cycle') {
+        return `<svg viewBox="0 0 240 200" width="240" height="200" xmlns="http://www.w3.org/2000/svg">
+            <line x1="40" y1="170" x2="220" y2="170" stroke="#94a3b8" stroke-width="2" />
+            <line x1="40" y1="170" x2="40" y2="20" stroke="#94a3b8" stroke-width="2" />
+            <text x="215" y="188" fill="#94a3b8" font-size="12">V</text>
+            <text x="22" y="25" fill="#94a3b8" font-size="12">P</text>
+            <polygon points="70,50 180,50 180,140 70,140" fill="rgba(16, 185, 129, 0.12)" stroke="#10b981" stroke-width="2" />
+            <text x="60" y="45" fill="#f8fafc" font-size="11" font-weight="bold">A(P1, V1)</text>
+            <text x="185" y="45" fill="#f8fafc" font-size="11" font-weight="bold">B(P1, V2)</text>
+            <text x="185" y="145" fill="#f8fafc" font-size="11" font-weight="bold">C(P2, V2)</text>
+            <text x="60" y="152" fill="#f8fafc" font-size="11" font-weight="bold">D(P2, V1)</text>
+            <line x1="120" y1="46" x2="135" y2="46" stroke="#10b981" stroke-width="2" />
+            <line x1="184" y1="90" x2="184" y2="105" stroke="#10b981" stroke-width="2" />
+            <line x1="135" y1="144" x2="120" y2="144" stroke="#10b981" stroke-width="2" />
+            <line x1="66" y1="105" x2="66" y2="90" stroke="#10b981" stroke-width="2" />
+        </svg>`;
+    }
+    if (type === 'chemistry_reaction_energy') {
+        return `<svg viewBox="0 0 240 180" width="240" height="180" xmlns="http://www.w3.org/2000/svg">
+            <line x1="30" y1="150" x2="220" y2="150" stroke="#94a3b8" stroke-width="2" />
+            <line x1="30" y1="150" x2="30" y2="20" stroke="#94a3b8" stroke-width="2" />
+            <text x="25" y="15" fill="#94a3b8" font-size="11">Energy (E)</text>
+            <text x="120" y="170" fill="#94a3b8" font-size="11">Reaction Coordinate</text>
+            <path d="M 35,110 L 70,110 Q 110,20 140,50 Q 160,80 180,130 L 215,130" fill="none" stroke="#f43f5e" stroke-width="2.5" />
+            <line x1="70" y1="110" x2="140" y2="110" stroke="#64748b" stroke-width="1" stroke-dasharray="3,3" />
+            <line x1="125" y1="35" x2="125" y2="110" stroke="#f59e0b" stroke-width="1.5" />
+            <text x="132" y="75" fill="#f59e0b" font-size="11">E_a</text>
+            <line x1="180" y1="130" x2="180" y2="110" stroke="#38bdf8" stroke-width="1.5" />
+            <text x="186" y="122" fill="#38bdf8" font-size="11">ΔH &lt; 0</text>
+            <text x="40" y="105" fill="#f8fafc" font-size="10">Reactants</text>
+            <text x="180" y="145" fill="#f8fafc" font-size="10">Products</text>
+        </svg>`;
+    }
+    if (type === 'biology_action_potential') {
+        return `<svg viewBox="0 0 240 180" width="240" height="180" xmlns="http://www.w3.org/2000/svg">
+            <line x1="30" y1="120" x2="220" y2="120" stroke="#475569" stroke-width="1" stroke-dasharray="3,3" />
+            <line x1="30" y1="150" x2="220" y2="150" stroke="#94a3b8" stroke-width="1.5" />
+            <line x1="30" y1="150" x2="30" y2="20" stroke="#94a3b8" stroke-width="1.5" />
+            <text x="5" y="124" fill="#94a3b8" font-size="9">-70mV</text>
+            <text x="5" y="100" fill="#f59e0b" font-size="9">-55mV</text>
+            <text x="5" y="45" fill="#10b981" font-size="9">+30mV</text>
+            <path d="M 30,120 L 70,120 Q 80,118 90,100 Q 110,35 125,40 Q 140,45 155,135 Q 165,145 180,120 L 215,120" fill="none" stroke="#38bdf8" stroke-width="2.5" />
+            <text x="75" y="65" fill="#38bdf8" font-size="10">Depol (Na+ in)</text>
+            <text x="145" y="85" fill="#f43f5e" font-size="10">Repol (K+ out)</text>
+            <text x="150" y="165" fill="#a855f7" font-size="9">Hyperpolarization</text>
+        </svg>`;
+    }
+    if (type === 'biology_mitosis_meiosis') {
+        return `<svg viewBox="0 0 240 180" width="240" height="180" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="120" cy="90" rx="95" ry="70" fill="rgba(16, 185, 129, 0.1)" stroke="#10b981" stroke-width="2" />
+            <circle cx="45" cy="90" r="5" fill="#f59e0b" />
+            <circle cx="195" cy="90" r="5" fill="#f59e0b" />
+            <text x="25" y="112" fill="#f59e0b" font-size="9">Centrosome</text>
+            <line x1="120" y1="20" x2="120" y2="160" stroke="#64748b" stroke-width="1" stroke-dasharray="3,3" />
+            <text x="80" y="172" fill="#94a3b8" font-size="9">Metaphase Plate</text>
+            <rect x="116" y="50" width="8" height="24" rx="2" fill="#38bdf8" />
+            <rect x="116" y="80" width="8" height="24" rx="2" fill="#ec4899" />
+            <rect x="116" y="110" width="8" height="24" rx="2" fill="#8b5cf6" />
+            <line x1="45" y1="90" x2="116" y2="62" stroke="#38bdf8" stroke-width="1.2" />
+            <line x1="195" y1="90" x2="124" y2="62" stroke="#38bdf8" stroke-width="1.2" />
+            <line x1="45" y1="90" x2="116" y2="92" stroke="#ec4899" stroke-width="1.2" />
+            <line x1="195" y1="90" x2="124" y2="92" stroke="#ec4899" stroke-width="1.2" />
+            <line x1="45" y1="90" x2="116" y2="122" stroke="#8b5cf6" stroke-width="1.2" />
+            <line x1="195" y1="90" x2="124" y2="122" stroke="#8b5cf6" stroke-width="1.2" />
+        </svg>`;
+    }
     return null;
 }
 
@@ -164,6 +280,7 @@ export function createOlympiadQuestion({
     let explanation = '';
     let diagram = null;
     let image = null;
+    let olympiadStage = null;
 
     // Distribute correct answer evenly across options A, B, C, D (0, 1, 2, 3)
     const targetCorrectIndex = (qIndex + paperNum * 3) % 4;
@@ -285,8 +402,17 @@ export function createOlympiadQuestion({
                 rawOptions = [`$${profitPct}\\%$`, `$${(profitPct * 1.2).toFixed(1)}\\%$`, `$15\\%$`, `$20\\%$`];
                 explanation = `$\\text{Profit } = ${sp} - ${cp} = 50$. $\\text{Profit}\\% = \\frac{50}{${cp}} \\times 100\\% = ${profitPct}\\%$.`;
             }
+        } else if (classNum === 11) {
+            // Official Indian National & International Selection Pathway: IOQM → RMO → INMO → IMO
+            const res = generateClass11MathQuestion(qIndex, paperNum, topic, isVisual);
+            questionText = res.questionText;
+            rawOptions = res.rawOptions;
+            explanation = res.explanation;
+            diagram = res.diagram;
+            image = res.image;
+            olympiadStage = res.olympiadStage;
         } else {
-            // Classes 9 to 12
+            // Classes 9, 10, 12
             const seed = (qIndex * 13) + (paperNum * 17);
             const subMod = qIndex % 6;
 
@@ -413,8 +539,20 @@ export function createOlympiadQuestion({
                 rawOptions = ['Red Blood Cells (Erythrocytes)', 'White Blood Cells (Leukocytes)', 'Platelets (Thrombocytes)', 'Plasma proteins'];
                 explanation = 'Red blood cells contain hemoglobin molecules that bind reversibly to oxygen for systemic transport.';
             }
+        } else if (classNum === 11) {
+            // Official Indian National Selection Pathways:
+            // • Physics: NSEP → INPhO → IPhO (qIndex 0-16)
+            // • Chemistry: NSEC → INChO → IChO (qIndex 17-33)
+            // • Biology: NSEB → INBO → IBO (qIndex 34-49)
+            const res = generateClass11ScienceQuestion(qIndex, paperNum, topic, isVisual);
+            questionText = res.questionText;
+            rawOptions = res.rawOptions;
+            explanation = res.explanation;
+            diagram = res.diagram;
+            image = res.image;
+            olympiadStage = res.olympiadStage;
         } else {
-            // Classes 9 to 12
+            // Classes 9, 10, 12
             const subMod = qIndex % 5;
             if (subMod === 0) {
                 const m = 2 + (qIndex % 5);
@@ -518,8 +656,17 @@ export function createOlympiadQuestion({
                 rawOptions = ['must', 'might', 'could', 'may'];
                 explanation = '"Must" expresses strict necessity and mandatory obligation.';
             }
+        } else if (classNum === 11) {
+            // Senior High School Olympiad Standard (IEO / iOEL)
+            const res = generateClass11EnglishQuestion(qIndex, paperNum, topic, isVisual);
+            questionText = res.questionText;
+            rawOptions = res.rawOptions;
+            explanation = res.explanation;
+            diagram = res.diagram;
+            image = res.image;
+            olympiadStage = res.olympiadStage;
         } else {
-            // Classes 9 to 12
+            // Classes 9, 10, 12
             const subMod = qIndex % 4;
             if (subMod === 0) {
                 questionText = `Identify the grammatical error in the sentence: \\textit{"Had the committee \\underline{approved}(A) the proposal earlier, the research \\underline{would proceed}(B) without \\underline{any}(C) unforeseen \\underline{delays}(D)."}`;
@@ -576,6 +723,7 @@ export function createOlympiadQuestion({
         negativeMarks: 0,
         exam: 'olympiad',
         examType: 'Olympiad',
+        olympiadStage: olympiadStage || (subject === 'Mathematics' ? 'IMO' : (subject === 'Science' ? 'NSO' : 'IEO')),
         provenance: paperNum <= 4 ? 'VERIFIED_PREVIOUS_YEAR' : (paperNum <= 8 ? 'ADAPTED' : 'ORIGINAL'),
         verificationStatus: 'VERIFIED',
         publicationStatus: 'PUBLISHED',

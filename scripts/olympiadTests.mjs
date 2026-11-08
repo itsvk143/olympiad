@@ -49,10 +49,23 @@ export function generateOlympiadTests() {
                 const testId = `olympiad-class-${classNum}-${subjectSlug}-${padPaper}`;
                 const diffDist = DIFFICULTY_DISTRIBUTIONS[paperNum];
 
+                let title = `Class ${classNum} ${subject} Olympiad - Paper ${paperNum} (${diffDist.label})`;
+                let description = `Official-pattern Class ${classNum} ${subject} Olympiad Examination Paper #${paperNum}. ${diffDist.easyPct}% Easy, ${diffDist.modPct}% Moderate, ${diffDist.diffPct}% Difficult.`;
+
+                if (classNum === 11) {
+                    if (subject === 'Mathematics') {
+                        title = `Class 11 Mathematics Olympiad (IOQM → RMO → INMO → IMO Pathway) - Paper ${paperNum}`;
+                        description = `Official Class 11 Mathematics Olympiad Paper #${paperNum}. Calibrated to India’s national selection pathway: IOQM → RMO → INMO → IMO. Covers Number Theory, Combinatorics, Geometry & Olympiad Algebra.`;
+                    } else if (subject === 'Science') {
+                        title = `Class 11 Science Olympiad (NSEP Physics • NSEC Chemistry • NSEB Biology) - Paper ${paperNum}`;
+                        description = `Official Class 11 Science Olympiad Paper #${paperNum}. Aligned with the official Indian national selection pathway for representing India globally: Physics (NSEP → INPhO), Chemistry (NSEC → INChO), and Biology (NSEB → INBO).`;
+                    }
+                }
+
                 tests.push({
                     id: testId,
                     testId,
-                    title: `Class ${classNum} ${subject} Olympiad - Paper ${paperNum} (${diffDist.label})`,
+                    title,
                     shortTitle: `Class ${classNum} ${subjectCode} - P${paperNum}`,
                     paperCode: `OLY-CL${classNum}-${subjectCode}-P${padPaper}`,
                     exam: 'olympiad',
@@ -72,7 +85,7 @@ export function generateOlympiadTests() {
                     difficulty: paperNum <= 3 ? 'Easy' : (paperNum <= 7 ? 'Moderate' : 'Difficult'),
                     difficultyDistribution: diffDist,
                     topics,
-                    description: `Official-pattern Class ${classNum} ${subject} Olympiad Examination Paper #${paperNum}. ${diffDist.easyPct}% Easy, ${diffDist.modPct}% Moderate, ${diffDist.diffPct}% Difficult.`,
+                    description,
                     isOlympiad: true
                 });
             }
