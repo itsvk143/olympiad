@@ -83,3 +83,4 @@ export function generateOlympiadTests() {
 }
 
 export const olympiadTests = generateOlympiadTests();
+

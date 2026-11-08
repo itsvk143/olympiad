@@ -5,9 +5,14 @@ import clientPromise from '@/lib/mongodb';
 import { auth } from '@/lib/auth';
 import { getTestById, getQuestionsForTest } from '@/data/testService';
 import { formatQuestionToLegacy, formatQuestionToCentralized } from '@/lib/questionFormatter';
-import { balanceTestQuestions, toValidObjectId } from '@/lib/testQuestionBalancer';
 import { checkTestAccess } from '@/lib/authorization';
 import { getCanonicalChapter } from '@/lib/chapterMapping';
+
+const toValidObjectId = (id) => {
+    if (!id) return null;
+    const s = (typeof id === 'object' && id._id) ? id._id.toString() : id.toString();
+    return ObjectId.isValid(s) ? new ObjectId(s) : null;
+};
 
 async function getQuestionsFallback(testId) {
     return [];
@@ -607,25 +612,7 @@ export async function GET(request) {
                 }
 
                 if (orderedQuestions.length > 0) {
-                    // Enforce exam-specific quotas and placement
-                    const examName = testPaper.exam || 'olympiad';
-                    const { balancedQuestions, wasModified } = await balanceTestQuestions(orderedQuestions, db, testId, examName);
-                    const finalQuestions = balancedQuestions.map((q, index) => ({ ...q, id: index + 1 }));
-
-                    const needsIdMigration = testPaper.questions.some(item => typeof item === 'string' || (typeof item === 'object' && !(item._bsontype === 'ObjectID' || item instanceof ObjectId)));
-
-                    if (wasModified || needsIdMigration) {
-                        const newIds = finalQuestions
-                            .map(q => toValidObjectId(q._id) || toValidObjectId(q.id) || q._id)
-                            .filter(Boolean);
-                        if (newIds.length > 0) {
-                            db.collection('testPapers').updateOne(
-                                { _id: testPaper._id },
-                                { $set: { questions: newIds, updatedAt: new Date() } }
-                            ).catch(err => console.error('Error auto-syncing balanced questions to testPaper:', err));
-                        }
-                    }
-
+                    const finalQuestions = orderedQuestions.map((q, index) => ({ ...q, id: index + 1 }));
                     return Response.json(finalQuestions);
                 }
             }

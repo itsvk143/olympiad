@@ -1,21 +1,5 @@
 import clientPromise from '@/lib/mongodb';
 import { auth } from '@/lib/auth';
-import { NEET_BOTANY_17, NEET_ZOOLOGY_15, NEET_EXCLUDED_5 } from '@/lib/chapterMasterService.cjs';
-
-const EXCLUDED_SET = new Set(NEET_EXCLUDED_5.map(c => c.name.toLowerCase()));
-
-const LEGACY_UMBRELLAS = new Set([
-    'diversity in living world',
-    'genetics and evolution',
-    'ecology and environment',
-    'plant physiology',
-    'cell structure and function',
-    'reproduction in plants',
-    'human physiology',
-    'reproduction',
-    'biology and human welfare',
-    'structural organisation in animals and plants'
-]);
 
 export async function GET(request) {
     try {
@@ -72,45 +56,26 @@ export async function GET(request) {
             }
         ]).toArray();
 
-        // Format to a client-friendly structure with backward compatibility:
-        // formatted[subject] = { _total, _uncategorized, _types, _chapters, _order, [chapterName]: count }
+        // Format to a client-friendly structure:
+        // formatted[subject] = { _total, _uncategorized, _types, _chapters, [chapterName]: count }
         const formatted = {};
 
-        // Pre-initialize canonical subjects with configured chapter order
-        const initSubjectWithOrder = (subjName, canonicalList) => {
-            formatted[subjName] = {
+        const olympiadSubjects = ['Mathematics', 'Science', 'English'];
+        for (const subj of olympiadSubjects) {
+            formatted[subj] = {
                 _total: 0,
                 _uncategorized: 0,
                 _types: { MCQ: 0, NUMERICAL: 0, ASSERTION_REASON: 0 },
-                _chapters: {},
-                _order: canonicalList.map(c => c.name)
+                _chapters: {}
             };
-            for (const c of canonicalList) {
-                formatted[subjName][c.name] = 0;
-                formatted[subjName]._chapters[c.name] = {
-                    total: 0,
-                    types: { MCQ: 0, NUMERICAL: 0, ASSERTION_REASON: 0 },
-                    subtopics: {}
-                };
-            }
-        };
-
-        initSubjectWithOrder('Botany', NEET_BOTANY_17);
-        initSubjectWithOrder('Zoology', NEET_ZOOLOGY_15);
+        }
 
         stats.forEach(item => {
-            const subject = item._id.subject || 'Unknown';
+            const subject = item._id.subject || 'Mathematics';
             const rawChapter = (item._id.chapter || '').trim();
             const subTopic = (item._id.subTopic || '').trim();
             const type = item._id.type || 'MCQ';
             const count = item.count;
-
-            const chLower = rawChapter.toLowerCase();
-
-            // Exclude obsolete syllabus chapters from active NEET question bank
-            if (EXCLUDED_SET.has(chLower) || LEGACY_UMBRELLAS.has(chLower)) {
-                return;
-            }
 
             if (!formatted[subject]) {
                 formatted[subject] = {
@@ -128,8 +93,6 @@ export async function GET(request) {
             } else {
                 formatted[subject]._total += count;
                 formatted[subject]._types[type] = (formatted[subject]._types[type] || 0) + count;
-
-                // Backward-compatibility: formatted[subject][rawChapter] = count
                 formatted[subject][rawChapter] = (formatted[subject][rawChapter] || 0) + count;
 
                 if (!formatted[subject]._chapters[rawChapter]) {
